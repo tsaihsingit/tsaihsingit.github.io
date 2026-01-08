@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>班級學生計分板</title>
+    <style>
+        :root {
+            --bg-color: #222;
+            --card-bg: #333;
+            --text-color: #eee;
+            --accent-color: #4CAF50;
+            --danger-color: #f44336;
+            --col-count: 7;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: "Microsoft JhengHei", "Heiti TC", sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* 頂部工具列 */
+        .header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            max-width: 1200px;
+        }
+
+        h1 { margin: 0; font-size: 1.5rem; }
+
+        button {
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            font-size: 1rem;
+            transition: 0.2s;
+            font-family: inherit;
+        }
+
+        .btn-settings { background-color: #555; color: white; }
+        .btn-settings:hover { background-color: #777; }
+
+        /* 網格佈局 */
+        #grid-container {
+            display: grid;
+            grid-template-columns: repeat(var(--col-count), 1fr);
+            gap: 12px;
+            width: 100%;
+            max-width: 100%;
+        }
+
+        /* 學生卡片 */
+        .student-card {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            position: relative;
+            min-height: 140px;
+            transition: transform 0.1s;
+        }
+
+        .student-card:hover {
+            transform: translateY(-2px);
+            background-color: #3a3a3a;
+        }
+
+        /* 學生資訊標頭 (座號 + 姓名) */
+        .student-header {
+            position: absolute;
+            top: 5px;
+            left: 8px;
+            right: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .seat-num {
+            font-size: 0.9rem;
+            color: #888;
+            font-weight: bold;
+            flex-shrink: 0;
+            user-select: none;
+        }
+
+        .student-name {
+            font-size: 0.9rem;
+            color: #ccc;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-weight: normal;
+        }
+
+        .icon-display {
+            font-size: 3rem;
+            margin: 15px 0 10px 0;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+
+        /* 分數與按鈕同一行 */
+        .score-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            gap: 8px;
+        }
+
+        .score-display {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #fff;
+            min-width: 40px;
+            text-align: center;
+            line-height: 1;
+        }
+
+        .btn-score {
+            width: 36px;
+            height: 36px;
+            font-size: 1.4rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            padding: 0;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+
+        .btn-minus { background-color: var(--danger-color); }
+        .btn-plus { background-color: var(--accent-color); }
+        .btn-minus:active { background-color: #d32f2f; transform: scale(0.95); }
+        .btn-plus:active { background-color: #388E3C; transform: scale(0.95); }
+
+        /* 設定視窗 Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(2px);
+        }
+
+        .modal-content {
+            background-color: #2a2a2a;
+            padding: 24px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            border: 1px solid #444;
+            max-height: 90vh; /* 防止太高超出螢幕 */
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 15px;
+            color: white;
+            font-weight: bold;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #ccc;
+            font-size: 0.95rem;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            background: #333;
+            border: 1px solid #555;
+            color: white;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+        
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        /* 匯出區域樣式 */
+        .export-section {
+            border-top: 1px solid #444;
+            padding-top: 20px;
+            margin-top: 10px;
+        }
+        
+        textarea {
+            width: 100%;
+            background: #1a1a1a;
+            border: 1px solid #555;
+            color: #ddd;
+            padding: 10px;
+            border-radius: 6px;
+            resize: vertical;
+            font-family: monospace;
+            box-sizing: border-box;
+            font-size: 0.9rem;
+            white-space: pre;
+            min-height: 100px;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 30px;
+            align-items: center;
+        }
+
+        .btn-save { background-color: var(--accent-color); color: white; font-weight: bold;}
+        .btn-cancel { background-color: transparent; color: #aaa; border: 1px solid #555; }
+        .btn-reset { background-color: #d32f2f; color: white; margin-right: auto; }
+        .btn-reset.confirm-state { background-color: #b71c1c; content: "確定?"; }
+
+        /* 通知訊息 Toast */
+        .toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 4px;
+            padding: 16px;
+            position: fixed;
+            z-index: 200;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%);
+            border: 1px solid #555;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            opacity: 0;
+            transition: opacity 0.3s, bottom 0.3s;
+        }
+
+        .toast.show {
+            visibility: visible;
+            opacity: 1;
+            bottom: 50px;
+        }
+
+        /* RWD 調整 */
+        @media (max-width: 768px) {
+            #grid-container {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            }
+            .icon-display { font-size: 2.5rem; }
+            .modal-content { width: 95%; padding: 20px; }
+            .btn-score { width: 44px; height: 44px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>🏆 班級計分板</h1>
+        <button class="btn-settings" onclick="openSettings()">⚙️ 設定</button>
+    </div>
+
+    <div id="grid-container">
+        <!-- Javascript 將在此產生內容 -->
+    </div>
+
+    <!-- 設定 Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">設定選項</div>
+            
+            <div class="form-group">
+                <label>學生總數 (預設: 6x7=42)</label>
+                <input type="number" id="setting-total" min="1" max="100">
+            </div>
+
+            <div class="form-group">
+                <label>每行欄數 (Columns, 桌面版生效)</label>
+                <input type="number" id="setting-cols" min="1" max="12">
+            </div>
+
+            <div class="form-group">
+                <label>圖示主題</label>
+                <select id="setting-theme">
+                    <option value="0">建築 (🏕 🏠 🏡 🏢 🏰)</option>
+                    <option value="1">財富 (💲 💸 💵 💰 💎)</option>
+                    <option value="2">交通 (🛴 🚙 🚂 🛩 🚀)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>圖示升級門檻 (每多少分)</label>
+                <select id="setting-threshold">
+                    <option value="5">每 5 分</option>
+                    <option value="10">每 10 分</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>編輯姓名 (格式：座號 [TAB] 姓名，每行一位)</label>
+                <textarea id="name-editor-area" rows="6" placeholder="1	王小明&#10;2	李小華"></textarea>
+            </div>
+
+            <!-- 匯出區域 -->
+            <div class="form-group export-section">
+                <label>匯出資料 (座號 [TAB] 姓名 [TAB] 分數)</label>
+                <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                    <button class="btn-settings" onclick="exportScores()" style="flex: 1;">📋 產生資料</button>
+                    <button class="btn-settings" onclick="copyExport()" style="flex: 1;">複製內容</button>
+                </div>
+                <textarea id="export-area" rows="4" readonly placeholder="點擊「產生資料」按鈕..."></textarea>
+            </div>
+
+            <div class="modal-footer">
+                <button id="btn-reset" class="btn-reset" onclick="handleReset()">重置所有資料</button>
+                <button class="btn-cancel" onclick="closeSettings()">取消</button>
+                <button class="btn-save" onclick="saveSettings()">儲存變更</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">設定已儲存</div>
+
+    <script>
+        // --- 設定與常數 ---
+        const DEFAULT_CONFIG = {
+            totalStudents: 42,
+            columns: 7,
+            iconSetIndex: 0, // 0: Building, 1: Money, 2: Transport
+            threshold: 5     // 5 or 10
+        };
+
+        const ICON_SETS = [
+            ['🏕', '🏠', '🏡', '🏢', '🏰'],
+            ['💲', '💸', '💵', '💰', '💎'],
+            ['🛴', '🚙', '🚂', '🛩', '🚀']
+        ];
+
+        // 應用程式狀態
+        let appState = {
+            config: { ...DEFAULT_CONFIG },
+            students: [] // Array of { id: 1, score: 0, name: '' }
+        };
+
+        let resetConfirmStage = false; // 用於重置按鈕的雙重確認
+
+        // --- 儲存機制 (LocalStorage & Cookie) ---
+        
+        function saveToStorage() {
+            const dataStr = JSON.stringify(appState);
+            
+            // 1. Save to LocalStorage
+            try {
+                localStorage.setItem('classScoreboardData', dataStr);
+            } catch (e) {
+                console.warn('LocalStorage not available');
+            }
+
+            // 2. Save to Cookie (設定過期時間為 1 年)
+            const d = new Date();
+            d.setTime(d.getTime() + (365*24*60*60*1000));
+            let expires = "expires="+ d.toUTCString();
+            // 簡單編碼
+            document.cookie = "classScoreboardData=" + encodeURIComponent(dataStr) + ";" + expires + ";path=/;SameSite=Strict";
+        }
+
+        function loadFromStorage() {
+            // 1. Try LocalStorage
+            try {
+                const lsData = localStorage.getItem('classScoreboardData');
+                if (lsData) {
+                    appState = JSON.parse(lsData);
+                    // 簡單的資料完整性檢查
+                    if (!appState.students || !appState.config) throw new Error("Invalid Data");
+                    return true;
+                }
+            } catch(e) { console.error("LS Parse Error or Empty", e); }
+
+            // 2. Try Cookie if LS failed
+            const name = "classScoreboardData=";
+            try {
+                const decodedCookie = decodeURIComponent(document.cookie);
+                const ca = decodedCookie.split(';');
+                for(let i = 0; i < ca.length; i++) {
+                    let c = ca[i];
+                    while (c.charAt(0) == ' ') {
+                        c = c.substring(1);
+                    }
+                    if (c.indexOf(name) == 0) {
+                        appState = JSON.parse(c.substring(name.length, c.length));
+                        return true;
+                    }
+                }
+            } catch(e) { console.error("Cookie Parse Error", e); }
+            
+            return false;
+        }
+
+        // --- 邏輯核心 ---
+
+        function initData() {
+            // 如果沒有載入到資料，則初始化
+            if (!loadFromStorage()) {
+                initializeStudents(DEFAULT_CONFIG.totalStudents);
+            } else {
+                // 資料遷移檢查：確保所有學生都有 name 屬性
+                let modified = false;
+                appState.students.forEach(s => {
+                    if (s.name === undefined) {
+                        s.name = "";
+                        modified = true;
+                    }
+                });
+                if (modified) saveToStorage();
+            }
+            renderGrid();
+        }
+
+        function initializeStudents(count) {
+            // 保留舊的分數，如果數量變少則截斷，變多則新增
+            let newStudents = [];
+            for (let i = 1; i <= count; i++) {
+                // 嘗試從現有狀態找舊資料
+                let existing = appState.students.find(s => s.id === i);
+                if (existing) {
+                    if (existing.name === undefined) existing.name = ""; // 防呆
+                    newStudents.push(existing);
+                } else {
+                    newStudents.push({ id: i, score: 0, name: "" });
+                }
+            }
+            appState.students = newStudents;
+        }
+
+        function getIcon(score) {
+            const set = ICON_SETS[appState.config.iconSetIndex];
+            const threshold = parseInt(appState.config.threshold);
+            
+            // 計算等級：分數除以門檻，無條件捨去
+            let level = Math.floor(score / threshold);
+            
+            // 邊界檢查：最小為0，最大為圖示數量-1
+            if (level < 0) level = 0;
+            if (level >= set.length) level = set.length - 1;
+            
+            return set[level];
+        }
+
+        function updateScore(id, delta) {
+            const student = appState.students.find(s => s.id === id);
+            if (student) {
+                student.score += delta;
+                saveToStorage();
+                updateCardView(student); // 只更新單一卡片以提升效能
+            }
+        }
+
+        // --- 畫面渲染 ---
+
+        function renderGrid() {
+            const container = document.getElementById('grid-container');
+            container.innerHTML = '';
+            
+            // 設定 CSS Grid Columns
+            document.documentElement.style.setProperty('--col-count', appState.config.columns);
+
+            appState.students.forEach(student => {
+                const card = document.createElement('div');
+                card.className = 'student-card';
+                card.id = `card-${student.id}`;
+                
+                // 顯示：座號 + 姓名 (非輸入框)
+                card.innerHTML = `
+                    <div class="student-header">
+                        <div class="seat-num">${student.id}</div>
+                        <div class="student-name">${student.name || ''}</div>
+                    </div>
+                    <div class="icon-display" id="icon-${student.id}">${getIcon(student.score)}</div>
+                    <div class="score-row">
+                        <button class="btn-score btn-minus" onclick="updateScore(${student.id}, -1)">-</button>
+                        <div class="score-display" id="score-${student.id}">${student.score}</div>
+                        <button class="btn-score btn-plus" onclick="updateScore(${student.id}, 1)">+</button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function updateCardView(student) {
+            const scoreEl = document.getElementById(`score-${student.id}`);
+            const iconEl = document.getElementById(`icon-${student.id}`);
+            if (scoreEl && iconEl) {
+                scoreEl.textContent = student.score;
+                iconEl.textContent = getIcon(student.score);
+                
+                // 簡單的動畫效果
+                iconEl.animate([
+                    { transform: 'scale(1)' },
+                    { transform: 'scale(1.2)' },
+                    { transform: 'scale(1)' }
+                ], { duration: 200 });
+            }
+        }
+
+        // --- 設定介面邏輯 ---
+
+        function openSettings() {
+            document.getElementById('setting-total').value = appState.config.totalStudents;
+            document.getElementById('setting-cols').value = appState.config.columns;
+            document.getElementById('setting-theme').value = appState.config.iconSetIndex;
+            document.getElementById('setting-threshold').value = appState.config.threshold;
+            
+            // 填充姓名編輯區
+            const nameData = appState.students
+                .map(s => `${s.id}\t${s.name}`)
+                .join('\n');
+            document.getElementById('name-editor-area').value = nameData;
+
+            // 清空匯出區域，避免顯示舊資料
+            document.getElementById('export-area').value = '';
+
+            // Reset reset button state
+            resetConfirmStage = false;
+            const btn = document.getElementById('btn-reset');
+            btn.innerText = "重置所有資料";
+            btn.classList.remove('confirm-state');
+
+            document.getElementById('settingsModal').style.display = 'flex';
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').style.display = 'none';
+        }
+
+        function saveSettings() {
+            const newTotal = parseInt(document.getElementById('setting-total').value);
+            const newCols = parseInt(document.getElementById('setting-cols').value);
+            const newTheme = parseInt(document.getElementById('setting-theme').value);
+            const newThreshold = parseInt(document.getElementById('setting-threshold').value);
+
+            if (newTotal < 1 || newCols < 1) {
+                showToast("數值必須大於 0");
+                return;
+            }
+
+            // 更新設定
+            appState.config.totalStudents = newTotal;
+            appState.config.columns = newCols;
+            appState.config.iconSetIndex = newTheme;
+            appState.config.threshold = newThreshold;
+
+            // 重新初始化陣列 (增減學生數量)
+            initializeStudents(newTotal);
+
+            // 處理姓名批次更新
+            const nameEditorContent = document.getElementById('name-editor-area').value;
+            const lines = nameEditorContent.split('\n');
+            
+            // 建立一個暫時的 Map 來儲存輸入的姓名，方便查找
+            const nameMap = new Map();
+            lines.forEach(line => {
+                const parts = line.split('\t'); // 使用 TAB 分隔
+                // 如果沒有 TAB，嘗試用空格 (寬容模式)
+                const id = parseInt(parts[0]);
+                let name = "";
+                
+                if (parts.length > 1) {
+                    name = parts[1].trim();
+                } else {
+                    // 嘗試用空格解析： "1 王小明"
+                    const spaceParts = line.trim().split(/\s+/);
+                    if (spaceParts.length >= 2) {
+                         const potentialId = parseInt(spaceParts[0]);
+                         if (!isNaN(potentialId)) {
+                             // 剩下的部分組合回名字
+                             name = spaceParts.slice(1).join(' ');
+                         }
+                    }
+                }
+
+                if (!isNaN(id)) {
+                    nameMap.set(id, name);
+                }
+            });
+
+            // 更新 appState 中的姓名
+            appState.students.forEach(student => {
+                if (nameMap.has(student.id)) {
+                    student.name = nameMap.get(student.id);
+                }
+            });
+            
+            saveToStorage();
+            renderGrid(); // 全部重繪以套用新設定
+            closeSettings();
+            showToast("設定已儲存！");
+        }
+
+        // --- 匯出功能 ---
+        function exportScores() {
+            const exportText = appState.students
+                .map(s => `${s.id}\t${s.name}\t${s.score}`)
+                .join('\n');
+            const area = document.getElementById('export-area');
+            area.value = exportText;
+            area.select(); // 提示使用者資料已選取
+        }
+
+        function copyExport() {
+            const area = document.getElementById('export-area');
+            if (!area.value) {
+                showToast("請先點擊「產生資料」");
+                return;
+            }
+            area.select();
+            document.execCommand('copy');
+            showToast("已複製到剪貼簿");
+        }
+
+        // --- 重置功能 ---
+
+        function handleReset() {
+            const btn = document.getElementById('btn-reset');
+            
+            if (!resetConfirmStage) {
+                // 第一階段：請求確認
+                resetConfirmStage = true;
+                btn.innerText = "確定要刪除嗎？(再次點擊)";
+                btn.classList.add('confirm-state');
+            } else {
+                // 第二階段：執行重置
+                performReset();
+            }
+        }
+
+        function performReset() {
+            localStorage.removeItem('classScoreboardData');
+            document.cookie = "classScoreboardData=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+            appState.config = { ...DEFAULT_CONFIG };
+            appState.students = [];
+            initializeStudents(DEFAULT_CONFIG.totalStudents);
+            saveToStorage();
+            renderGrid();
+            closeSettings();
+            showToast("所有資料已重置");
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById("toast");
+            toast.innerText = msg;
+            toast.className = "toast show";
+            setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 3000);
+        }
+
+        // 點擊 Modal 外部關閉
+        window.onclick = function(event) {
+            const modal = document.getElementById('settingsModal');
+            if (event.target == modal) {
+                closeSettings();
+            }
+        }
+
+        // --- 啟動 ---
+        initData();
+
+    </script>
+</body>
+</html>
