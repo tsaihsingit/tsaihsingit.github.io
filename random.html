@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>幸運拉霸機</title>
+    <style>
+        :root {
+            --primary: #f1c40f;
+            --accent: #e74c3c;
+            --bg: #1e272e;
+            --machine-body: #2c3e50;
+            --slot-bg: #ecf0f1;
+            --text-dark: #2c3e50;
+            --glow: 0 0 10px rgba(241, 196, 15, 0.5);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg);
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 布局容器 */
+        .layout {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 左側主畫面 (拉霸機) */
+        .main-stage {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: radial-gradient(circle at center, #2c3e50 0%, #000000 100%);
+        }
+
+        /* 右側控制欄 */
+        .sidebar {
+            width: 280px;
+            background-color: rgba(0, 0, 0, 0.8);
+            border-left: 1px solid #444;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+
+        h2.sidebar-title {
+            margin: 0 0 10px 0;
+            font-size: 1.2rem;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 2px solid #444;
+            padding-bottom: 10px;
+        }
+
+        /* 控制項樣式 */
+        .control-group {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .label {
+            display: block;
+            margin-bottom: 8px;
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+
+        .btn-mode {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 8px;
+            background: transparent;
+            border: 1px solid #666;
+            color: #ccc;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1rem;
+        }
+
+        .btn-mode:hover {
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .btn-mode.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: var(--text-dark);
+            font-weight: bold;
+            box-shadow: var(--glow);
+        }
+
+        /* 計數器 */
+        .counter-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #333;
+            border-radius: 6px;
+            padding: 5px;
+        }
+
+        .btn-count {
+            width: 36px;
+            height: 36px;
+            background: #555;
+            border: none;
+            color: white;
+            border-radius: 4px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-count:hover { background: #666; }
+        .count-display { font-size: 1.5rem; font-weight: bold; color: white; }
+
+        /* 拉霸機外觀 */
+        .machine-container {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            /* 讓機器寬度可以跟隨內容撐開，不限制最大寬度 */
+            max-width: 95%; 
+        }
+
+        .machine-frame {
+            background: var(--machine-body);
+            padding: 30px;
+            border-radius: 20px;
+            border: 8px solid #34495e;
+            box-shadow: 
+                0 0 0 5px #000,
+                0 20px 50px rgba(0,0,0,0.8),
+                inset 0 0 20px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 320px;
+            position: relative;
+        }
+
+        /* 標題燈箱 */
+        .machine-header {
+            background: #000;
+            width: 100%;
+            text-align: center;
+            padding: 10px 0;
+            border-radius: 10px 10px 0 0;
+            margin-bottom: 20px;
+            border: 2px solid #555;
+            box-shadow: inset 0 0 10px #000;
+        }
+
+        .status-text {
+            color: var(--primary);
+            font-size: 2.5rem; /* 標題也稍微加大 */
+            font-weight: bold;
+            text-shadow: 0 0 10px var(--primary);
+            margin: 0;
+            letter-spacing: 3px;
+        }
+
+        /* 滾輪區域 */
+        .slots-area {
+            display: flex;
+            gap: 20px; /* 間距加大 */
+            justify-content: center;
+            flex-wrap: wrap;
+            /* 移除原本的 max-width: 800px */
+            max-width: none;
+            width: 100%;
+            padding: 10px;
+        }
+
+        .slot-window {
+            /* 預設寬度由 JS 控制，但這裡定義基本高度與樣式 */
+            height: 250px; /* 高度加大以容納大字體 (原 140px) */
+            background: linear-gradient(to bottom, #bdc3c7 0%, #ecf0f1 50%, #bdc3c7 100%);
+            border-radius: 12px;
+            border: 6px solid #7f8c8d; /* 邊框加粗 */
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 玻璃反光效果 */
+        .slot-window::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 50%);
+            pointer-events: none;
+        }
+
+        .slot-number {
+            font-size: 6rem; /* 字體 2 倍大 (原 3rem) */
+            font-weight: 900;
+            color: var(--text-dark);
+            transition: transform 0.1s;
+        }
+
+        /* 模糊特效 class */
+        .blur-effect .slot-number {
+            filter: blur(8px); /* 模糊程度加強 */
+            transform: scale(0.9) translateY(10px);
+            color: #e74c3c;
+        }
+
+        /* 分組清單模式樣式 */
+        .slot-number.list-view {
+            font-size: 1.5rem !important; /* 清單字體也放大 (原 0.9rem) */
+            white-space: pre-wrap;
+            word-break: break-word;
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 15px 10px;
+            box-sizing: border-box;
+            line-height: 1.5;
+            font-weight: bold;
+        }
+        
+        /* 隱藏清單捲軸但保留功能 (Chrome/Safari) */
+        .slot-number.list-view::-webkit-scrollbar {
+            width: 6px;
+        }
+        .slot-number.list-view::-webkit-scrollbar-thumb {
+            background: rgba(0,0,0,0.2);
+            border-radius: 3px;
+        }
+
+        /* 拉桿總成 */
+        .handle-group {
+            position: relative;
+            width: 60px;
+            height: 200px;
+            margin-left: 5px;
+            margin-top: 50px;
+        }
+
+        .handle-connector {
+            position: absolute;
+            left: 0;
+            top: 40px;
+            width: 20px;
+            height: 80px;
+            background: #7f8c8d;
+            border-radius: 0 10px 10px 0;
+            box-shadow: inset -2px 0 5px rgba(0,0,0,0.3);
+        }
+
+        .handle-stick {
+            position: absolute;
+            left: 10px;
+            bottom: 80px;
+            width: 12px;
+            height: 120px;
+            background: linear-gradient(90deg, #95a5a6, #ecf0f1, #95a5a6);
+            transform-origin: bottom center;
+            transition: transform 0.5s cubic-bezier(0.5, 0, 0.5, 1.5);
+            cursor: pointer;
+            z-index: 5;
+        }
+
+        .handle-knob {
+            position: absolute;
+            top: -30px;
+            left: -19px;
+            width: 50px;
+            height: 50px;
+            background: radial-gradient(circle at 30% 30%, #ff7675, #c0392b);
+            border-radius: 50%;
+            box-shadow: 2px 5px 10px rgba(0,0,0,0.4);
+        }
+
+        .handle-stick.pulled {
+            transform: rotate(180deg);
+        }
+
+        /* 右下角設定按鈕 */
+        .settings-fab {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid rgba(255,255,255,0.2);
+            z-index: 20;
+        }
+
+        .settings-fab:hover {
+            background: var(--primary);
+            color: var(--text-dark);
+            transform: rotate(90deg);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-box {
+            background: #fff;
+            color: #333;
+            width: 500px;
+            max-width: 90%;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .modal-header h3 { margin: 0; color: #2c3e50; }
+
+        .modal-body textarea {
+            width: 100%;
+            height: 200px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            resize: vertical;
+            font-family: monospace;
+            font-size: 1rem;
+        }
+
+        .modal-footer {
+            margin-top: 15px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        .btn-cancel { background: #bdc3c7; color: #2c3e50; }
+        .btn-save { background: var(--primary); color: #2c3e50; }
+        .btn-save:hover { background: #f39c12; }
+
+        .hidden { display: none !important; }
+
+        /* RWD 簡單適配 */
+        @media (max-width: 768px) {
+            .layout { flex-direction: column; overflow-y: auto; }
+            .sidebar { width: 100%; height: auto; border-left: none; border-bottom: 1px solid #444; padding: 10px; }
+            .main-stage { min-height: 500px; padding: 20px 0; }
+            .machine-frame { transform: scale(0.8); }
+            .settings-fab { bottom: 10px; right: 10px; }
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="layout">
+    <!-- 主畫面 -->
+    <div class="main-stage">
+        <div class="machine-container">
+            <div class="machine-frame">
+                <div class="machine-header">
+                    <div class="status-text" id="statusText">READY</div>
+                </div>
+                
+                <div class="slots-area" id="slotsContainer">
+                    <!-- 動態生成 slot-window -->
+                </div>
+            </div>
+
+            <div class="handle-group">
+                <div class="handle-connector"></div>
+                <div class="handle-stick" id="handle">
+                    <div class="handle-knob"></div>
+                </div>
+            </div>
+        </div>
+
+        <button class="settings-fab" onclick="openSettings()" title="設定清單">⚙️</button>
+    </div>
+
+    <!-- 右側選單 -->
+    <div class="sidebar">
+        <h2 class="sidebar-title">控制面板</h2>
+        
+        <div class="control-group">
+            <span class="label">抽選模式</span>
+            <button class="btn-mode active" id="btnSingle" onclick="setMode('single')">單人模式 (Single)</button>
+            <button class="btn-mode" id="btnGroup" onclick="setMode('group')">分組模式 (Group Split)</button>
+        </div>
+
+        <div class="control-group hidden" id="groupControls">
+            <span class="label">預計分為幾組 (1-20)</span>
+            <div class="counter-wrapper">
+                <button class="btn-count" onclick="updateCount(-1)">-</button>
+                <div class="count-display" id="countDisplay">3</div>
+                <button class="btn-count" onclick="updateCount(1)">+</button>
+            </div>
+        </div>
+
+        <div style="margin-top: auto; color: #777; font-size: 0.85rem; line-height: 1.5;">
+            說明：<br>
+            1. 點擊畫面中央的紅色拉桿開始。<br>
+            2. 可在設定中更改抽籤內容。<br>
+            3. <strong>單人模式</strong>：抽出一位幸運兒。<br>
+            4. <strong>分組模式</strong>：將所有名單隨機平均分配到指定數量的組別中。<br>
+            5. 資料會自動儲存於瀏覽器。
+        </div>
+    </div>
+</div>
+
+<!-- 設定彈窗 -->
+<div class="modal-overlay" id="settingsModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3>設定候選名單</h3>
+            <span style="cursor:pointer; font-size:1.5rem;" onclick="closeSettings()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <p style="font-size:0.9rem; color:#666; margin-top:0;">
+                請輸入號碼或名字，使用逗號 (,) 或換行分隔。<br>
+                目前共有 <span id="poolCount" style="color:var(--accent); font-weight:bold;">42</span> 筆資料。
+            </p>
+            <textarea id="poolInput" placeholder="例如：
+1
+2
+3
+..."></textarea>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-cancel" onclick="closeSettings()">取消</button>
+            <button class="btn btn-save" onclick="saveSettings()">儲存更新</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- 核心變數 ---
+    
+    // 讀取舊資料函式 (優先順序: LocalStorage -> Cookie -> 預設 1~42)
+    function loadSavedData() {
+        // 1. 嘗試 LocalStorage
+        const localData = localStorage.getItem('slotMachineData');
+        if (localData) {
+            try {
+                const parsed = JSON.parse(localData);
+                if (Array.isArray(parsed)) return parsed;
+            } catch (e) {
+                console.warn("LocalStorage data invalid", e);
+            }
+        }
+
+        // 2. 嘗試 Cookie
+        const match = document.cookie.match(new RegExp('(^| )slotMachineData=([^;]+)'));
+        if (match) {
+            try {
+                const parsed = JSON.parse(decodeURIComponent(match[2]));
+                if (Array.isArray(parsed)) return parsed;
+            } catch (e) {
+                console.warn("Cookie data invalid", e);
+            }
+        }
+
+        // 3. 預設值 (如果都沒有舊資料)
+        return Array.from({length: 42}, (_, i) => String(i + 1));
+    }
+
+    // 初始化名單資料
+    let poolData = loadSavedData();
+    let isRolling = false;
+    let currentMode = 'single'; // 'single' | 'group'
+    let groupCount = 3;
+
+    // --- DOM 元素 ---
+    const handle = document.getElementById('handle');
+    const slotsContainer = document.getElementById('slotsContainer');
+    const statusText = document.getElementById('statusText');
+    const btnSingle = document.getElementById('btnSingle');
+    const btnGroup = document.getElementById('btnGroup');
+    const groupControls = document.getElementById('groupControls');
+    const countDisplay = document.getElementById('countDisplay');
+    
+    // Modal 元素
+    const settingsModal = document.getElementById('settingsModal');
+    const poolInput = document.getElementById('poolInput');
+    const poolCountSpan = document.getElementById('poolCount');
+
+    // --- 初始化 ---
+    renderSlots(1); // 預設顯示一個框
+
+    // --- 事件監聽 ---
+    handle.addEventListener('click', startSpin);
+
+    // --- 主要邏輯 ---
+
+    function startSpin() {
+        if (isRolling) return;
+        if (poolData.length === 0) {
+            alert("抽籤池是空的！請先設定內容。");
+            return;
+        }
+
+        isRolling = true;
+        statusText.innerText = "ROLLING...";
+        
+        // 1. 動畫：拉桿
+        handle.classList.add('pulled');
+        setTimeout(() => handle.classList.remove('pulled'), 500);
+
+        // 2. 準備邏輯
+        // 單人模式：視窗數量 = 1
+        // 分組模式：視窗數量 = 組別數量
+        const windowCount = (currentMode === 'single') ? 1 : groupCount;
+        
+        renderSlots(windowCount, true); // true = 準備開始滾動 (清除樣式)
+
+        const slotWindows = document.querySelectorAll('.slot-window');
+        const slotNumbers = document.querySelectorAll('.slot-number');
+        const intervals = [];
+
+        // 3. 滾動過程 (設定隨機跳動)
+        // 為了讓動畫好看，我們這裡暫時還是顯示隨機單個號碼
+        slotWindows.forEach((win, index) => {
+            win.classList.add('blur-effect');
+            
+            // 每個視窗的滾動速度稍微不同，製造層次感
+            const speed = 50 + Math.random() * 50; 
+            
+            const interval = setInterval(() => {
+                const randomItem = poolData[Math.floor(Math.random() * poolData.length)];
+                // 若是分組模式，滾動時顯示 "Team X" 或隨機號碼
+                if (currentMode === 'group') {
+                    // 為了視覺效果，滾動時顯示隨機成員
+                    slotNumbers[index].innerText = randomItem;
+                } else {
+                    slotNumbers[index].innerText = randomItem;
+                }
+            }, speed);
+            
+            intervals.push(interval);
+        });
+
+        // 4. 停止與顯示結果 (約 3 秒)
+        setTimeout(() => {
+            let displayResults = []; // 最終要顯示的內容陣列 (字串)
+
+            if (currentMode === 'single') {
+                // 單人：隨機取一個
+                const winner = poolData[Math.floor(Math.random() * poolData.length)];
+                displayResults = [winner];
+            } else {
+                // 分組：將所有名單平均分配到各組
+                // 先複製並打亂陣列
+                const shuffledPool = shuffleArray([...poolData]);
+                // 建立 n 個空組
+                const groups = Array.from({length: windowCount}, () => []);
+                
+                // 像發牌一樣依序分配
+                shuffledPool.forEach((item, i) => {
+                    const groupIndex = i % windowCount;
+                    groups[groupIndex].push(item);
+                });
+
+                // 將各組轉為字串
+                displayResults = groups.map((group, i) => {
+                    // 組名 + 成員列表
+                    return `第 ${i+1} 組\n---\n` + group.join(', ');
+                });
+            }
+
+            // 清除計時器並顯示最終值
+            intervals.forEach((interval, idx) => {
+                clearInterval(interval);
+                
+                const slotEl = slotNumbers[idx];
+                const content = displayResults[idx];
+                
+                slotEl.innerText = content;
+                slotWindows[idx].classList.remove('blur-effect');
+
+                // 針對分組模式，套用特殊樣式 (小字體、多行)
+                if (currentMode === 'group') {
+                    slotEl.classList.add('list-view');
+                } else {
+                    slotEl.classList.remove('list-view');
+                }
+            });
+
+            isRolling = false;
+            statusText.innerText = (currentMode === 'group') ? "DONE!" : "WINNER!";
+            
+        }, 3000);
+    }
+
+    // 輔助：洗牌 (Fisher-Yates Shuffle)
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+    // --- UI 渲染 ---
+
+    function renderSlots(count, isSpinning = false) {
+        slotsContainer.innerHTML = '';
+        
+        // 根據數量動態調整大小 (所有尺寸都約略調為2倍大)
+        let widthStyle = '200px';
+        let fontSizeStyle = '6rem';
+
+        // 若組數很多，格子變小 (邏輯也需配合放大)
+        if (count > 10) {
+            widthStyle = '120px'; 
+            fontSizeStyle = '3rem';
+        } else if (count > 5) {
+            widthStyle = '160px';
+            fontSizeStyle = '4rem';
+        }
+
+        // 分組模式下預設先用一般字體滾動，結束後再變小 (由 startSpin 控制 class)
+        // 這裡設定的是初始狀態
+
+        for (let i = 0; i < count; i++) {
+            const div = document.createElement('div');
+            div.className = 'slot-window';
+            div.style.width = widthStyle;
+            
+            const content = document.createElement('div');
+            content.className = 'slot-number';
+            
+            // 如果剛初始化或正在準備旋轉
+            content.innerText = '?';
+            
+            // 設定基礎字體大小 (若之後加上 .list-view 會被 override)
+            content.style.fontSize = fontSizeStyle;
+
+            div.appendChild(content);
+            slotsContainer.appendChild(div);
+        }
+    }
+
+    // --- 模式控制 ---
+
+    function setMode(mode) {
+        if (isRolling) return;
+        currentMode = mode;
+
+        // 更新按鈕樣式
+        btnSingle.classList.toggle('active', mode === 'single');
+        btnGroup.classList.toggle('active', mode === 'group');
+
+        // 顯示/隱藏計數器
+        if (mode === 'group') {
+            groupControls.classList.remove('hidden');
+            // 分組模式：顯示 組數 個視窗
+            renderSlots(groupCount);
+        } else {
+            groupControls.classList.add('hidden');
+            // 單人模式：顯示 1 個視窗
+            renderSlots(1);
+        }
+    }
+
+    function updateCount(delta) {
+        if (isRolling) return;
+        let newCount = groupCount + delta;
+        
+        // 限制範圍 1 ~ 20 (或池子上限)
+        // 分組模式下，組數不應超過總人數 (一人一組是極限)
+        if (newCount < 1) newCount = 1;
+        if (newCount > 20) newCount = 20; 
+        if (newCount > poolData.length) newCount = poolData.length;
+
+        groupCount = newCount;
+        countDisplay.innerText = groupCount;
+        
+        // 即時預覽格子數量
+        if (currentMode === 'group') {
+            renderSlots(groupCount);
+        }
+    }
+
+    // --- 設定 Modal 控制 ---
+
+    function openSettings() {
+        if (isRolling) return;
+        poolInput.value = poolData.join('\n'); // 換行顯示比較清楚
+        poolCountSpan.innerText = poolData.length;
+        settingsModal.style.display = 'flex';
+    }
+
+    function closeSettings() {
+        settingsModal.style.display = 'none';
+    }
+
+    function saveSettings() {
+        const raw = poolInput.value;
+        // 支援換行或逗號分隔，並過濾空白
+        const items = raw.split(/[\n,]+/)
+                         .map(s => s.trim())
+                         .filter(s => s !== '');
+
+        if (items.length === 0) {
+            alert("名單不能為空！");
+            return;
+        }
+
+        poolData = items;
+        poolCountSpan.innerText = poolData.length;
+
+        // --- 儲存資料到 Storage & Cookie ---
+        try {
+            const dataStr = JSON.stringify(poolData);
+            
+            // 1. LocalStorage
+            localStorage.setItem('slotMachineData', dataStr);
+            
+            // 2. Cookie (設定 1 年後過期)
+            const oneYear = 31536000;
+            document.cookie = `slotMachineData=${encodeURIComponent(dataStr)}; path=/; max-age=${oneYear}`;
+        } catch (e) {
+            console.error("儲存失敗:", e);
+        }
+        
+        closeSettings();
+        
+        // 重置狀態
+        statusText.innerText = "READY";
+        if (currentMode === 'single') {
+            renderSlots(1);
+        } else {
+            // 檢查目前組數是否超過新名單長度
+            if (groupCount > poolData.length) {
+                groupCount = poolData.length;
+                countDisplay.innerText = groupCount;
+            }
+            renderSlots(groupCount);
+        }
+        
+        alert(`設定已更新並儲存！目前共有 ${poolData.length} 筆項目。`);
+    }
+
+    // 點擊背景關閉
+    settingsModal.addEventListener('click', (e) => {
+        if (e.target === settingsModal) closeSettings();
+    });
+
+</script>
+
+</body>
+</html>
