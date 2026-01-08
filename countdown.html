@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>進階計時器</title>
+    <style>
+        :root {
+            /* 淺色模式變數 (預設) */
+            --bg-color: #f0f2f5;
+            --text-color: #333;
+            --timer-color: #222;
+            --panel-bg: rgba(255, 255, 255, 0.6);
+            --btn-bg: #fff;
+            --btn-shadow: rgba(0,0,0,0.1);
+            --bar-bg: #e0e0e0;
+            --bar-fill: #007bff;
+            --danger-color: #dc3545;
+            --preset-btn-text: #007bff;
+            --preset-btn-border: #007bff;
+            --preset-btn-hover-bg: #007bff;
+            --preset-btn-hover-text: #fff;
+        }
+
+        /* 深色模式變數 */
+        body.dark-mode {
+            --bg-color: #1a1a1a;
+            --text-color: #f0f0f0;
+            --timer-color: #fff;
+            --panel-bg: rgba(50, 50, 50, 0.6);
+            --btn-bg: #333;
+            --btn-shadow: rgba(0,0,0,0.5);
+            --bar-bg: #444;
+            --bar-fill: #4dabf7;
+            --danger-color: #ff6b6b;
+            --preset-btn-text: #4dabf7;
+            --preset-btn-border: #4dabf7;
+            --preset-btn-hover-bg: #4dabf7;
+            --preset-btn-hover-text: #1a1a1a;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* 右上角現在時間 */
+        #current-clock {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            font-size: 2.25rem;
+            font-weight: 500;
+            color: var(--text-color);
+            background: var(--panel-bg);
+            padding: 5px 15px;
+            border-radius: 20px;
+            box-shadow: 0 2px 5px var(--btn-shadow);
+            backdrop-filter: blur(5px);
+        }
+
+        /* 左上角主題切換 */
+        #theme-toggle {
+            position: absolute;
+            top: auto;
+            bottom: 20px;
+            left: 30px;
+            font-size: 1.5rem;
+            background: var(--panel-bg);
+            border: none;
+            padding: 5px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px var(--btn-shadow);
+            color: var(--text-color);
+            transition: transform 0.2s;
+        }
+        #theme-toggle:active { transform: scale(0.9); }
+
+        /* 主要顯示區域容器 */
+        .main-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            width: 95%;
+            max-width: 1400px;
+        }
+
+        /* 左右控制面板 */
+        .control-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 25px;
+            background: var(--panel-bg);
+            border-radius: 20px;
+            box-shadow: 0 4px 15px var(--btn-shadow);
+            backdrop-filter: blur(5px);
+        }
+
+        /* 中間區域 (時間 + 進度條) */
+        .center-display {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex-grow: 1;
+            min-width: 450px;
+        }
+
+        /* 計時器大字體 */
+        #timer-display {
+            font-size: 8rem;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+            color: var(--timer-color);
+            text-align: center;
+            user-select: none;
+            line-height: 1;
+            margin-bottom: 20px;
+            transition: color 0.2s;
+        }
+
+        /* 進度條容器 */
+        .progress-container {
+            width: 80%;
+            height: 12px;
+            background-color: var(--bar-bg);
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+        /* 進度條本體 */
+        #progress-bar {
+            height: 100%;
+            width: 0%; /* 初始 0% 或 100% 視邏輯而定 */
+            background-color: var(--bar-fill);
+            border-radius: 6px;
+            transition: width 0.2s linear; /* 平滑過渡 */
+        }
+
+        /* 控制按鈕樣式 (Emoji) */
+        .btn-control {
+            font-size: 2.5rem;
+            padding: 10px;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px var(--btn-shadow);
+            background-color: var(--btn-bg);
+            line-height: 1;
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-control:hover { transform: translateY(-2px); box-shadow: 0 6px 12px var(--btn-shadow); filter: brightness(0.95); }
+        .btn-control:active { transform: scale(0.95); }
+
+        /* 下方設定時間按鈕區 */
+        .preset-area {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            max-width: 900px;
+            width: 90%;
+            padding: 20px;
+            background: var(--panel-bg);
+            border-radius: 15px;
+            box-shadow: 0 4px 10px var(--btn-shadow);
+            backdrop-filter: blur(5px);
+        }
+
+        .btn-add {
+            background-color: transparent;
+            color: var(--preset-btn-text);
+            border: 2px solid var(--preset-btn-border);
+            font-size: 1.2rem;
+            font-weight: bold;
+            padding: 10px 24px;
+            border-radius: 10px;
+            flex: 1 1 auto;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-add:hover {
+            background-color: var(--preset-btn-hover-bg);
+            color: var(--preset-btn-hover-text);
+        }
+
+        .btn-reset {
+            background-color: #6c757d;
+            color: white;
+            border: 2px solid #6c757d;
+            font-size: 1.2rem;
+            font-weight: bold;
+            padding: 10px 24px;
+            border-radius: 10px;
+            flex: 1 1 auto;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-reset:hover { background-color: #5a6268; border-color: #5a6268; }
+
+        /* RWD 響應式調整 */
+        @media (max-width: 1024px) {
+            #timer-display { font-size: 6rem; }
+            .center-display { min-width: 300px; }
+            .btn-control { width: 60px; height: 60px; font-size: 2rem; }
+        }
+
+        @media (max-width: 768px) {
+            .main-container { flex-direction: column; gap: 15px; }
+            .control-panel { flex-direction: row; width: 100%; justify-content: center; padding: 15px; }
+            .center-display { order: -1; margin: 10px 0; width: 100%; }
+            #timer-display { font-size: 5rem; }
+        }
+
+        /* --- 動畫效果 --- */
+
+        /* 僅閃爍文字顏色的動畫 */
+        @keyframes flash-text-only {
+            0% { color: var(--danger-color); opacity: 1; }
+            50% { color: var(--danger-color); opacity: 0.2; }
+            100% { color: var(--danger-color); opacity: 1; }
+        }
+
+        .time-up-text {
+            animation: flash-text-only 0.5s infinite;
+            /* 強制覆蓋原本顏色 */
+            color: var(--danger-color) !important; 
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- 左上角主題切換 -->
+    <button id="theme-toggle" onclick="toggleTheme()" title="切換深色/淺色模式">🌗</button>
+
+    <!-- 右上角現在時間 -->
+    <div id="current-clock">Loading...</div>
+
+    <!-- 主要區域 -->
+    <div class="main-container">
+        
+        <!-- 左側控制面板 -->
+        <div class="control-panel">
+            <button class="btn-control" onclick="startTimer()" title="開始">▶️</button>
+            <button class="btn-control" onclick="pauseTimer()" title="暫停">⏸️</button>
+            <button class="btn-control" onclick="stopTimer()" title="停止/復原">⏹️</button>
+        </div>
+
+        <!-- 中間時間與進度條 -->
+        <div class="center-display">
+            <div id="timer-display">00:00:00</div>
+            <div class="progress-container">
+                <div id="progress-bar"></div>
+            </div>
+        </div>
+
+        <!-- 右側控制面板 -->
+        <div class="control-panel">
+            <button class="btn-control" onclick="startTimer()" title="開始">▶️</button>
+            <button class="btn-control" onclick="pauseTimer()" title="暫停">⏸️</button>
+            <button class="btn-control" onclick="stopTimer()" title="停止/復原">⏹️</button>
+        </div>
+
+    </div>
+
+    <!-- 下方設定按鈕 -->
+    <div class="preset-area">
+        <button class="btn-add" onclick="addTime(600)">+10m</button>
+        <button class="btn-add" onclick="addTime(300)">+5m</button>
+        <button class="btn-add" onclick="addTime(60)">+1m</button>
+        <button class="btn-add" onclick="addTime(30)">+30s</button>
+        <button class="btn-add" onclick="addTime(10)">+10s</button>
+        <button class="btn-reset" onclick="resetTimer()">歸零</button>
+    </div>
+
+    <script>
+        // 變數設定
+        let totalSeconds = 0;       // 目前剩餘秒數
+        let originalSeconds = 0;    // 紀錄原本設定的總秒數 (用於進度條與停止復原)
+        let timerInterval = null;
+        let audioCtx = null; 
+
+        const display = document.getElementById('timer-display');
+        const progressBar = document.getElementById('progress-bar');
+        const clockElement = document.getElementById('current-clock');
+        const body = document.body;
+
+        // --- 0. 主題切換 ---
+        function toggleTheme() {
+            body.classList.toggle('dark-mode');
+        }
+
+        // --- 1. 右上角時鐘功能 ---
+        function updateCurrentTime() {
+            const now = new Date();
+            clockElement.innerText = now.toLocaleTimeString('zh-TW', { hour12: false });
+        }
+        setInterval(updateCurrentTime, 1000);
+        updateCurrentTime();
+
+        // --- 2. 格式化時間 hh:mm:ss ---
+        function formatTime(seconds) {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = seconds % 60;
+            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+
+        function updateDisplay() {
+            display.innerText = formatTime(totalSeconds);
+            updateProgressBar();
+        }
+
+        // --- 3. 進度條邏輯 ---
+        function updateProgressBar() {
+            if (originalSeconds <= 0) {
+                progressBar.style.width = '0%';
+                return;
+            }
+            // 計算剩餘百分比
+            const percentage = (totalSeconds / originalSeconds) * 100;
+            progressBar.style.width = `${Math.max(0, percentage)}%`;
+        }
+
+        // --- 4. 按鈕邏輯 ---
+        function addTime(seconds) {
+            stopAlarm();
+            
+            // 累加時間
+            totalSeconds += seconds;
+            // 同時更新原始設定時間，這樣進度條分母才會正確
+            originalSeconds += seconds;
+            
+            updateDisplay();
+        }
+
+        function resetTimer() {
+            stopAlarm();
+            pauseTimer();
+            totalSeconds = 0;
+            originalSeconds = 0;
+            updateDisplay();
+        }
+
+        function startTimer() {
+            initAudio(); 
+            stopAlarm(); 
+
+            if (timerInterval) return; 
+            if (totalSeconds <= 0) return;
+
+            // 如果 originalSeconds 因為某些原因跑掉（例如手動歸零後直接開始），重設它
+            if (originalSeconds === 0) originalSeconds = totalSeconds;
+
+            timerInterval = setInterval(() => {
+                if (totalSeconds > 0) {
+                    totalSeconds--;
+                    updateDisplay();
+                } else {
+                    timeUp();
+                }
+            }, 1000);
+        }
+
+        function pauseTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            stopAlarm(); 
+        }
+
+        function stopTimer() {
+            // 停止計時
+            pauseTimer();
+            stopAlarm();
+
+            // 恢復到原本設定的時間
+            if (originalSeconds > 0) {
+                totalSeconds = originalSeconds;
+                updateDisplay();
+            }
+        }
+
+        // --- 5. 鬧鈴與文字閃爍 ---
+        function timeUp() {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            
+            // 進度條歸零
+            totalSeconds = 0;
+            updateDisplay();
+
+            playBeep();
+            
+            // 只對文字加 class
+            display.classList.add('time-up-text');
+        }
+
+        function stopAlarm() {
+            display.classList.remove('time-up-text');
+        }
+
+        // --- 6. 音效合成 (Web Audio API) ---
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playBeep() {
+            if (!audioCtx) initAudio();
+            
+            let beepCount = 0;
+            const maxFlashes = 10; // 設定閃爍上限為 10 次
+
+            const beepInterval = setInterval(() => {
+                // 檢查是否還在閃爍文字，如果不閃了就停止聲音
+                if (!display.classList.contains('time-up-text')) {
+                    clearInterval(beepInterval);
+                    return;
+                }
+                
+                // 檢查是否達到次數限制
+                if (beepCount >= maxFlashes) {
+                    clearInterval(beepInterval);
+                    stopAlarm(); // 時間到自動停止
+                    
+                    // 閃爍完畢後，自動回到設定的時間
+                    if (originalSeconds > 0) {
+                        totalSeconds = originalSeconds;
+                        updateDisplay();
+                    }
+                    
+                    return;
+                }
+
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc.type = 'square';
+                osc.frequency.value = 880; 
+                
+                const now = audioCtx.currentTime;
+                gain.gain.setValueAtTime(0.3, now);
+                
+                osc.start(now);
+                osc.stop(now + 0.2); 
+                
+                beepCount++;
+            }, 500); 
+        }
+    </script>
+</body>
+</html>
