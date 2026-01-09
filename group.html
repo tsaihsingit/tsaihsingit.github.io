@@ -85,6 +85,25 @@
             border: 1px solid var(--border-color);
         }
 
+        /* Home Button Style */
+        .home-btn {
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .home-btn:hover {
+            background-color: var(--btn-bg);
+        }
+
         /* Main Stage */
         #stage {
             flex: 1;
@@ -243,6 +262,8 @@
 
     <header>
         <div class="control-group">
+            <!-- Updated Home Button Text -->
+            <a href="index.html" class="home-btn">⬅️ 教室工具箱</a>
             <label>組數 (1-7):</label>
             <input type="number" id="groupCountInput" min="1" max="7" value="4" onchange="renderGroups()">
         </div>
