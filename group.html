@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互動計分看板 - 蓋大樓版</title>
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --text-color: #333;
+            --card-bg: #fff;
+            --border-color: #ccc;
+            --btn-bg: #e0e0e0;
+            --btn-text: #333;
+            --accent-color: #3b82f6;
+            
+            /* Building Specific Colors */
+            --building-off: #eef2f3;
+            --building-border: #cfd8dc;
+            --building-on: #607d8b;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --card-bg: #2d2d2d;
+            --border-color: #444;
+            --btn-bg: #404040;
+            --btn-text: #fff;
+            --building-off: #333;
+            --building-border: #444;
+        }
+
+        body {
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            box-sizing: border-box;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* Controls Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        select, input[type="number"], button {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        button.theme-toggle {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+        }
+        
+        button.sound-toggle {
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+        }
+
+        /* Main Stage */
+        #stage {
+            flex: 1;
+            display: flex;
+            /* Key Requirement: Right is Group 1, Left is Group 7 */
+            flex-direction: row-reverse; 
+            justify-content: center;
+            align-items: flex-end;
+            gap: 15px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+
+        .group-column {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            width: 120px;
+            height: 100%;
+            max-height: 600px;
+            transition: transform 0.2s, background-color 0.3s;
+            position: relative;
+        }
+        
+        /* Highlight animation when reaching max score */
+        @keyframes pulse-gold {
+            0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(255, 215, 0, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0); }
+        }
+        
+        .group-column.winner {
+            animation: pulse-gold 1s infinite;
+            border: 2px solid gold;
+        }
+
+        .group-header {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        /* Building Theme Container */
+        .visual-container {
+            flex: 1;
+            width: 80%; /* Building width */
+            display: flex;
+            flex-direction: column-reverse; /* 0 at bottom, 10 at top */
+            justify-content: flex-start;
+            align-items: center;
+            gap: 2px;
+            margin: 10px 0;
+            position: relative;
+        }
+
+        /* Building Floors (Steps) */
+        .step {
+            width: 100%;
+            height: 9%; /* Adjust based on container height */
+            background-color: var(--building-off);
+            border: 1px solid var(--building-border);
+            border-radius: 4px;
+            margin-bottom: 2px;
+            
+            /* Centering the icon */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5rem;
+            color: transparent; /* Hide icon when inactive */
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        /* Active Floor Style */
+        .step.active {
+            background-color: var(--accent-color);
+            box-shadow: inset 0 0 10px rgba(255,255,255,0.3);
+            border-color: rgba(0,0,0,0.1);
+            /* color: #fff; REMOVED: Don't show icon on all active steps */ 
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+
+        /* NEW: Only the top-most active floor shows the icon */
+        .step.active.current-top {
+            color: #fff;
+            transform: scale(1.05); /* Slight pop effect */
+            z-index: 2;
+        }
+
+        /* Winner Flag Decoration on Top */
+        .step:nth-last-child(1).active::after {
+            content: "🚩";
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 24px;
+            animation: wave 1s ease-in-out infinite alternate;
+        }
+
+        @keyframes wave {
+            from { transform: translateX(-50%) rotate(-10deg); }
+            to { transform: translateX(-50%) rotate(10deg); }
+        }
+
+        /* Controls Footer */
+        .group-controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            gap: 8px;
+        }
+
+        .score-display {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--accent-color);
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .ctrl-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            font-size: 1.2rem;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        
+        .ctrl-btn:active { transform: scale(0.9); }
+        .btn-add { background-color: #4caf50; color: white; }
+        .btn-sub { background-color: #f44336; color: white; }
+
+        /* Hidden audio elements */
+        .audio-assets { display: none; }
+    </style>
+</head>
+<body data-theme="light">
+
+    <header>
+        <div class="control-group">
+            <label>組數 (1-7):</label>
+            <input type="number" id="groupCountInput" min="1" max="7" value="4" onchange="renderGroups()">
+        </div>
+        
+        <div class="control-group">
+            <button class="sound-toggle" id="soundToggleBtn" onclick="toggleMute()">🔊 音效: 開</button>
+            <button class="theme-toggle" onclick="toggleTheme()">🌓 切換深淺模式</button>
+        </div>
+    </header>
+
+    <div id="stage">
+        <!-- Groups will be injected here by JS -->
+    </div>
+
+    <!-- Audio Assets -->
+    <div class="audio-assets">
+        <audio id="sound-applause" src="https://actions.google.com/sounds/v1/crowds/crowd_applause.ogg" preload="auto"></audio>
+        <!-- Fallback dummy for click sound logic -->
+        <audio id="sound-click" src="data:audio/wav;base64,UklGRl9vT1BXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU" preload="auto"></audio> 
+    </div>
+
+    <script>
+        const maxScore = 10;
+        let currentScores = {};
+        let isMuted = false;
+
+        // Group Icons (Up to 7 groups)
+        const groupIcons = ['🐶', '🐱', '🦊', '🐸', '🦁', '🐷', '🐨'];
+
+        // Web Audio API Context
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playTone(freq, type, duration) {
+            if (isMuted) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        function playApplause() {
+            if (isMuted) return;
+            const audio = document.getElementById('sound-applause');
+            audio.currentTime = 0; 
+            audio.play().catch(e => console.log("Audio play failed:", e));
+        }
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            const btn = document.getElementById('soundToggleBtn');
+            btn.innerText = isMuted ? "🔇 音效: 關" : "🔊 音效: 開";
+        }
+
+        function init() {
+            renderGroups();
+        }
+
+        function toggleTheme() {
+            const body = document.body;
+            const current = body.getAttribute('data-theme');
+            body.setAttribute('data-theme', current === 'light' ? 'dark' : 'light');
+        }
+
+        function renderGroups() {
+            const stage = document.getElementById('stage');
+            const countInput = document.getElementById('groupCountInput');
+            let count = parseInt(countInput.value);
+            
+            if (count < 1) count = 1;
+            if (count > 7) count = 7;
+            countInput.value = count;
+
+            stage.innerHTML = ''; 
+
+            for (let i = 1; i <= count; i++) {
+                if (currentScores[i] === undefined) {
+                    currentScores[i] = 0;
+                }
+                stage.appendChild(createGroupElement(i));
+            }
+        }
+
+        function createGroupElement(id) {
+            const col = document.createElement('div');
+            col.className = 'group-column';
+            col.id = `group-${id}`;
+
+            const header = document.createElement('div');
+            header.className = 'group-header';
+            header.innerText = `第 ${id} 組`;
+
+            const visual = document.createElement('div');
+            visual.className = 'visual-container';
+            visual.id = `visual-${id}`;
+            
+            // Get Icon for this group (loop if more than 7, though input is max 7)
+            const icon = groupIcons[(id - 1) % groupIcons.length];
+
+            for (let s = 1; s <= maxScore; s++) {
+                const step = document.createElement('div');
+                step.className = 'step';
+                step.setAttribute('data-level', s);
+                // Set the icon text, it will be hidden by CSS color:transparent until active AND current-top
+                step.innerText = icon; 
+                visual.appendChild(step);
+            }
+
+            const controls = document.createElement('div');
+            controls.className = 'group-controls';
+
+            const scoreDisplay = document.createElement('div');
+            scoreDisplay.className = 'score-display';
+            scoreDisplay.id = `score-text-${id}`;
+            scoreDisplay.innerText = currentScores[id];
+
+            const btnRow = document.createElement('div');
+            btnRow.className = 'btn-row';
+
+            const btnSub = document.createElement('button');
+            btnSub.className = 'ctrl-btn btn-sub';
+            btnSub.innerText = '-';
+            btnSub.onclick = () => updateScore(id, -1);
+
+            const btnAdd = document.createElement('button');
+            btnAdd.className = 'ctrl-btn btn-add';
+            btnAdd.innerText = '+';
+            btnAdd.onclick = () => updateScore(id, 1);
+
+            btnRow.appendChild(btnSub);
+            btnRow.appendChild(btnAdd);
+
+            controls.appendChild(scoreDisplay);
+            controls.appendChild(btnRow);
+
+            col.appendChild(header);
+            col.appendChild(visual);
+            col.appendChild(controls);
+
+            requestAnimationFrame(() => updateVisuals(id));
+
+            return col;
+        }
+
+        function updateScore(id, delta) {
+            const oldScore = currentScores[id];
+            let newScore = oldScore + delta;
+            
+            if (newScore < 0) newScore = 0;
+            if (newScore > maxScore) newScore = maxScore;
+
+            if (newScore > oldScore) {
+                if (newScore === maxScore && oldScore !== maxScore) {
+                    playApplause();
+                } else {
+                    playTone(600, 'sine', 0.1);
+                }
+            } else if (newScore < oldScore) {
+                playTone(300, 'triangle', 0.1);
+            }
+
+            currentScores[id] = newScore;
+            
+            document.getElementById(`score-text-${id}`).innerText = newScore;
+            updateVisuals(id);
+        }
+
+        function updateVisuals(id) {
+            const score = currentScores[id];
+            const visualContainer = document.getElementById(`visual-${id}`);
+            const groupCol = document.getElementById(`group-${id}`);
+            const steps = visualContainer.querySelectorAll('.step');
+
+            if (score === maxScore) {
+                groupCol.classList.add('winner');
+            } else {
+                groupCol.classList.remove('winner');
+            }
+
+            steps.forEach(step => {
+                const level = parseInt(step.getAttribute('data-level'));
+                
+                // Clear state
+                step.classList.remove('active', 'current-top');
+
+                if (level <= score) {
+                    step.classList.add('active');
+                    // Only add current-top if this is the highest active level
+                    if (level === score) {
+                        step.classList.add('current-top');
+                    }
+                }
+            });
+        }
+
+        init();
+    </script>
+</body>
+</html>
