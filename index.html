@@ -165,7 +165,9 @@
             {
                 category: "政府資源",
                 items: [
+                    { name: "COOC+", url: "https://coocplus.tp.edu.tw/", icon: "🎞", desc: "學習影片" },
                     { name: "國字標準字體筆順學習網", url: "https://stroke-order.learningweb.moe.edu.tw/", icon: "🖊", desc: "" },
+                    
                 ]
             },
         ];
@@ -207,7 +209,7 @@
 
                 group.items.forEach(tool => {
                     htmlContent += `
-                        <a href="${tool.url}" target="_blank" class="card">
+                        <a href="${tool.url}" class="card">
                             <div class="card-icon">${tool.icon}</div>
                             <h3 class="card-title">${tool.name}</h3>
                             <p class="card-desc">${tool.desc}</p>
