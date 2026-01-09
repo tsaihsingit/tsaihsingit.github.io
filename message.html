@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>教室留言板</title>
+  <title>Cookie 打字板 (CHIPS 增強版)</title>
   
   <!-- 引入 React 和 ReactDOM -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
@@ -48,6 +48,7 @@
     );
 
     const Icons = {
+      Home: (props) => <Icon {...props}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></Icon>,
       Sun: (props) => <Icon {...props}><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></Icon>,
       Moon: (props) => <Icon {...props}><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></Icon>,
       Copy: (props) => <Icon {...props}><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></Icon>,
@@ -237,6 +238,13 @@
             </div>
             
             <div className="flex gap-2">
+              <a 
+                href="index.html"
+                title="返回教室工具箱"
+                className="p-2 rounded-full hover:bg-white/10 transition-colors flex items-center justify-center"
+              >
+                <Icons.Home size={20} />
+              </a>
               <button onClick={() => setDarkMode(!darkMode)} className="p-2 rounded-full hover:bg-white/10 transition-colors">
                 {darkMode ? <Icons.Sun size={20} /> : <Icons.Moon size={20} />}
               </button>
