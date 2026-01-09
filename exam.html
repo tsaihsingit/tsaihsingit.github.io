@@ -23,6 +23,26 @@
 
         .container { display: flex; flex-direction: column; height: 100vh; }
 
+        /* 左上角返回按鈕 */
+        .toolbox-btn {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 3000;
+            background-color: rgba(60, 60, 60, 0.8);
+            color: #fff;
+            padding: 8px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 1rem;
+            border: 1px solid #777;
+            transition: background-color 0.3s;
+        }
+        .toolbox-btn:hover {
+            background-color: #555;
+            border-color: #999;
+        }
+
         /* 上方 C 區 */
         #section-c {
             height: 33.33vh;
@@ -353,6 +373,9 @@
     </style>
 </head>
 <body>
+
+    <!-- 懸浮按鈕 -->
+    <a href="index.html" class="toolbox-btn">返回工具箱</a>
 
     <!-- 開場提示 -->
     <div id="startupToast" class="startup-toast">
