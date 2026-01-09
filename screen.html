@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Desktop Tools</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Import Map for React & Icons -->
+    <script type="importmap">
+    {
+        "imports": {
+            "react": "https://esm.sh/react@18.2.0",
+            "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+            "lucide-react": "https://esm.sh/lucide-react@0.263.1?deps=react@18.2.0"
+        }
+    }
+    </script>
+    
+    <style>
+        /* Custom Scrollbar for Webkit */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.1); 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0,0,0,0.2); 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0,0,0,0.4); 
+        }
+        
+        /* Font settings */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        
+        /* Animations for Modal */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes zoomIn {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .animate-in {
+            animation: fadeIn 0.2s ease-out forwards;
+        }
+        .zoom-in {
+            animation: zoomIn 0.2s ease-out forwards;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel" data-type="module">
+        import React, { useState, useEffect, useRef } from 'react';
+        import ReactDOM from 'react-dom/client';
+        import { 
+            X, Image as ImageIcon, Clock, Users, Grid, Timer, CalendarDays,
+            Trash2, Settings, Type, Check, RefreshCw, 
+            Languages, Palette, List, Clipboard, Minus, Plus,
+            AlertTriangle, Play, Pause, RotateCcw, ChevronUp, ChevronDown,
+            ArrowLeft
+        } from 'lucide-react';
+
+        /**
+         * Utility functions for Cookies
+         */
+        const setCookie = (name, value, days) => {
+            let expires = "";
+            if (days) {
+                const date = new Date();
+                date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+                expires = "; expires=" + date.toUTCString();
+            }
+            document.cookie = name + "=" + (value || "") + expires + "; path=/";
+        };
+
+        const getCookie = (name) => {
+            const nameEQ = name + "=";
+            const ca = document.cookie.split(';');
+            for (let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+            }
+            return null;
+        };
+
+        /**
+         * Translations
+         */
+        const TRANSLATIONS = {
+            zh: {
+                toolbar_note: "便利貼",
+                toolbar_image: "圖片",
+                toolbar_clock: "時鐘",
+                toolbar_timer: "倒數計時",
+                toolbar_date: "倒數日",
+                toolbar_draw: "抽籤",
+                toolbar_groups: "分組",
+                toolbar_clear: "清除全部",
+                toolbar_settings: "設定",
+                clear_confirm: "確定要清除螢幕上所有視窗嗎？",
+                cancel: "取消",
+                confirm: "確認",
+                setting_title: "系統設定",
+                lang_label: "語言",
+                theme_label: "佈景主題",
+                theme_dark: "深色",
+                theme_light: "淺色",
+                class_list: "班級名單 (每行格式: 座號 姓名)",
+                save: "儲存",
+                saved: "已儲存",
+                note_placeholder: "在此輸入內容...",
+                img_placeholder: "貼上圖片網址 或 點擊此處後按下 Ctrl+V 貼上剪貼簿圖片",
+                clock_digital: "數位",
+                clock_analog: "類比",
+                timer_start: "開始",
+                timer_pause: "暫停",
+                timer_reset: "重置",
+                date_placeholder: "輸入事件名稱...",
+                date_days_left: "天",
+                draw_title: "幸運抽籤",
+                draw_count: "抽取人數",
+                draw_btn: "開始抽取",
+                draw_result: "中獎名單",
+                group_title: "隨機分組",
+                group_count: "分組組數",
+                group_btn: "開始分組",
+                seat: "號",
+                paste_success: "圖片已貼上",
+                paste_error: "無法讀取剪貼簿圖片"
+            },
+            en: {
+                toolbar_note: "Note",
+                toolbar_image: "Image",
+                toolbar_clock: "Clock",
+                toolbar_timer: "Timer",
+                toolbar_date: "Days Left",
+                toolbar_draw: "Lottery",
+                toolbar_groups: "Grouping",
+                toolbar_clear: "Clear All",
+                toolbar_settings: "Settings",
+                clear_confirm: "Are you sure you want to clear all windows?",
+                cancel: "Cancel",
+                confirm: "Confirm",
+                setting_title: "Settings",
+                lang_label: "Language",
+                theme_label: "Theme",
+                theme_dark: "Dark",
+                theme_light: "Light",
+                class_list: "Class List (Format per line: No Name)",
+                save: "Save",
+                saved: "Saved",
+                note_placeholder: "Type here...",
+                img_placeholder: "Paste URL or Click here and Ctrl+V to paste image",
+                clock_digital: "Digital",
+                clock_analog: "Analog",
+                timer_start: "Start",
+                timer_pause: "Pause",
+                timer_reset: "Reset",
+                date_placeholder: "Event Name...",
+                date_days_left: "DAYS",
+                draw_title: "Lucky Draw",
+                draw_count: "Number of People",
+                draw_btn: "Draw",
+                draw_result: "Results",
+                group_title: "Random Groups",
+                group_count: "Number of Groups",
+                group_btn: "Group It",
+                seat: "",
+                paste_success: "Image pasted",
+                paste_error: "Cannot read clipboard image"
+            }
+        };
+
+        const DEFAULT_CLASS_LIST = Array.from({ length: 30 }, (_, i) => ({ no: i + 1, name: `Student ${i + 1}` }));
+
+        const NOTE_COLORS = [
+            { bg: 'bg-yellow-200', val: 'yellow' },
+            { bg: 'bg-green-200', val: 'green' },
+            { bg: 'bg-blue-200', val: 'blue' },
+            { bg: 'bg-pink-200', val: 'pink' },
+            { bg: 'bg-white', val: 'white' }
+        ];
+
+        // --- Sub-components (Defined OUTSIDE to prevent re-mounting) ---
+
+        const StickyNote = ({ data, onUpdate, globalProps }) => {
+            const { lang } = globalProps;
+            const bgColor = data.color || 'bg-yellow-200';
+            const fontSize = data.fontSize || 24;
+            
+            const [localText, setLocalText] = useState(data.text || '');
+            const timeoutRef = useRef(null);
+
+            useEffect(() => {
+                if (!localText && data.text) {
+                setLocalText(data.text);
+                }
+            }, []); 
+
+            const handleChange = (e) => {
+                const newVal = e.target.value;
+                setLocalText(newVal);
+
+                if (timeoutRef.current) clearTimeout(timeoutRef.current);
+                timeoutRef.current = setTimeout(() => {
+                onUpdate({ text: newVal });
+                }, 1500);
+            };
+
+            const handleBlur = () => {
+                if (timeoutRef.current) clearTimeout(timeoutRef.current);
+                onUpdate({ text: localText });
+            };
+
+            const changeColor = (colorClass) => {
+                onUpdate({ color: colorClass });
+            };
+
+            const changeFontSize = (delta) => {
+                onUpdate({ fontSize: Math.max(12, Math.min(64, fontSize + delta)) });
+            };
+
+            return (
+                <div className={`h-full w-full flex flex-col ${bgColor} text-gray-800 transition-colors duration-300`}>
+                <textarea 
+                    className="flex-1 w-full p-4 bg-transparent resize-none focus:outline-none placeholder-gray-500/50 leading-relaxed"
+                    value={localText}
+                    placeholder={TRANSLATIONS[lang].note_placeholder}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    style={{ 
+                    fontFamily: '"Comic Sans MS", "Chalkboard SE", sans-serif',
+                    fontSize: `${fontSize}px`
+                    }}
+                    onMouseDown={(e) => e.stopPropagation()} 
+                />
+                
+                <div 
+                    className="h-10 flex items-center px-2 gap-2 border-t border-black/5 bg-black/5 opacity-0 hover:opacity-100 transition-opacity"
+                    onMouseDown={(e) => e.stopPropagation()}
+                >
+                    <div className="flex items-center bg-white/50 rounded p-0.5">
+                        <button onClick={() => changeFontSize(-2)} className="p-1 hover:bg-black/10 rounded"><Minus size={12}/></button>
+                        <span className="text-xs w-6 text-center font-mono">{fontSize}</span>
+                        <button onClick={() => changeFontSize(2)} className="p-1 hover:bg-black/10 rounded"><Plus size={12}/></button>
+                    </div>
+                    <div className="flex items-center gap-1 ml-auto">
+                        {NOTE_COLORS.map(c => (
+                        <button
+                            key={c.val}
+                            onClick={() => changeColor(c.bg)}
+                            className={`w-4 h-4 rounded-full border border-black/10 ${c.bg} hover:scale-110 transition-transform ${bgColor === c.bg ? 'ring-2 ring-black/30' : ''}`}
+                        />
+                        ))}
+                    </div>
+                </div>
+                </div>
+            );
+        };
+
+        const ImageViewer = ({ data, onUpdate, globalProps }) => {
+            const { lang } = globalProps;
+            const handlePaste = async (e) => {
+                const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+                for (const item of items) {
+                if (item.type.indexOf("image") === 0) {
+                    const blob = item.getAsFile();
+                    const reader = new FileReader();
+                    reader.onload = (event) => onUpdate({ url: event.target.result });
+                    reader.readAsDataURL(blob);
+                    e.preventDefault();
+                }
+                }
+            };
+
+            return (
+                <div 
+                className="h-full w-full flex flex-col bg-gray-900 text-white overflow-hidden relative"
+                onPaste={handlePaste}
+                tabIndex="0"
+                >
+                {data.url ? (
+                    <div className="flex-1 relative w-full h-full group">
+                    <img src={data.url} alt="User content" className="w-full h-full object-contain pointer-events-none" />
+                    <button 
+                        onClick={() => onUpdate({ url: '' })}
+                        onMouseDown={(e) => e.stopPropagation()} 
+                        className="absolute top-2 right-2 bg-black/50 p-1 rounded hover:bg-red-500 opacity-0 group-hover:opacity-100 transition z-10"
+                    >
+                        <Trash2 size={16} />
+                    </button>
+                    </div>
+                ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center p-4 text-center border-2 border-dashed border-gray-600 m-2 rounded text-gray-400 hover:border-blue-500 hover:text-blue-400 transition cursor-pointer">
+                    <Clipboard size={32} className="mb-2" />
+                    <p className="text-sm">{TRANSLATIONS[lang].img_placeholder}</p>
+                    <input 
+                        type="text" 
+                        placeholder="https://..." 
+                        className="mt-4 w-full p-1 bg-gray-800 rounded border border-gray-700 text-xs"
+                        onChange={(e) => onUpdate({ url: e.target.value })}
+                        onKeyDown={(e) => e.stopPropagation()} 
+                        onMouseDown={(e) => e.stopPropagation()}
+                    />
+                    </div>
+                )}
+                </div>
+            );
+        };
+
+        const TimerTool = ({ data, onUpdate, globalProps, width, height }) => {
+            const { lang, theme } = globalProps;
+            const [timeLeft, setTimeLeft] = useState(0); // in seconds
+            const [isActive, setIsActive] = useState(false);
+            
+            // Blinking states
+            const [isBlinking, setIsBlinking] = useState(false);
+            const [blinkToggle, setBlinkToggle] = useState(false);
+            const blinkCountRef = useRef(0);
+
+            const size = Math.min(width, height);
+
+            // Audio generation function
+            const playBeep = () => {
+                // Check for Web Audio API support
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContext) return;
+
+                const ctx = new AudioContext();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                // Sound properties
+                osc.type = 'sine'; // Sine wave for a smoother beep
+                osc.frequency.setValueAtTime(880, ctx.currentTime); // A5 note
+                osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.3); // Drop pitch slightly
+
+                // Volume envelope
+                gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.3);
+
+                osc.start();
+                osc.stop(ctx.currentTime + 0.3);
+            };
+
+            // Countdown Logic
+            useEffect(() => {
+                let interval = null;
+                if (isActive && timeLeft > 0) {
+                    interval = setInterval(() => {
+                        setTimeLeft(prev => prev - 1);
+                    }, 1000);
+                } else if (timeLeft === 0 && isActive) {
+                    setIsActive(false);
+                    // Start Blinking Sequence
+                    setIsBlinking(true);
+                    blinkCountRef.current = 0;
+                    setBlinkToggle(true); 
+                }
+                return () => clearInterval(interval);
+            }, [isActive, timeLeft]);
+
+            // Blinking Logic & Sound
+            useEffect(() => {
+                let interval = null;
+                if (isBlinking) {
+                    // Play sound immediately on first blink state
+                    if (blinkToggle) {
+                        playBeep();
+                    }
+
+                    interval = setInterval(() => {
+                        setBlinkToggle(prev => !prev);
+                        blinkCountRef.current += 1;
+                        // Blink 10 times means 20 toggles (Red -> Normal -> Red ...)
+                        if (blinkCountRef.current >= 19) {
+                            setIsBlinking(false);
+                            setBlinkToggle(false);
+                        }
+                    }, 500);
+                }
+                return () => clearInterval(interval);
+            }, [isBlinking, blinkToggle]);
+
+            const stopBlinking = () => {
+                setIsBlinking(false);
+                setBlinkToggle(false);
+            };
+
+            // Timer Helpers
+            const formatTime = (seconds) => {
+                const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+                const s = (seconds % 60).toString().padStart(2, '0');
+                return { m, s };
+            };
+            const { m: mm, s: ss } = formatTime(timeLeft);
+
+            const adjustTime = (amount) => {
+                stopBlinking();
+                setTimeLeft(prev => Math.max(0, prev + amount));
+            };
+
+            const toggleStart = () => {
+                stopBlinking();
+                setIsActive(!isActive);
+                
+                // Initialize AudioContext on user interaction to ensure browser allows audio playback later
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (AudioContext && !isActive) { // only when starting
+                    const ctx = new AudioContext();
+                    ctx.resume();
+                }
+            };
+
+            const resetTimer = () => {
+                stopBlinking();
+                setIsActive(false);
+                setTimeLeft(0);
+            };
+
+            const timeClass = isBlinking && blinkToggle ? 'text-red-600' : '';
+
+            return (
+                <div className={`h-full w-full flex flex-col items-center justify-center relative ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}>
+                    <div className="flex flex-col items-center justify-center w-full h-full">
+                        <div className={`flex items-center gap-2 mb-2 transition-colors ${timeClass}`}>
+                            {/* Minutes */}
+                            <div className="flex flex-col items-center">
+                                <button onClick={() => adjustTime(60)} className="p-1 hover:bg-gray-500/20 rounded"><ChevronUp size={20}/></button>
+                                <span style={{ fontSize: size * 0.25, lineHeight: 1 }} className="font-mono font-bold tabular-nums">{mm}</span>
+                                <button onClick={() => adjustTime(-60)} className="p-1 hover:bg-gray-500/20 rounded"><ChevronDown size={20}/></button>
+                            </div>
+                            <span style={{ fontSize: size * 0.25, lineHeight: 1, paddingBottom: size*0.05 }} className="font-bold">:</span>
+                            {/* Seconds */}
+                            <div className="flex flex-col items-center">
+                                <button onClick={() => adjustTime(1)} className="p-1 hover:bg-gray-500/20 rounded"><ChevronUp size={20}/></button>
+                                <span style={{ fontSize: size * 0.25, lineHeight: 1 }} className="font-mono font-bold tabular-nums">{ss}</span>
+                                <button onClick={() => adjustTime(-1)} className="p-1 hover:bg-gray-500/20 rounded"><ChevronDown size={20}/></button>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-4 mb-2">
+                            <button onClick={toggleStart} className={`p-2 rounded-full ${isActive ? 'bg-yellow-600' : 'bg-green-600'} text-white`}>
+                                {isActive ? <Pause size={20} /> : <Play size={20} />}
+                            </button>
+                            <button onClick={resetTimer} className="p-2 rounded-full bg-red-600 text-white">
+                                <RotateCcw size={20} />
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-4 gap-1 px-2 w-full">
+                            <button onClick={() => adjustTime(600)} className="bg-gray-500/20 hover:bg-gray-500/40 rounded py-1 text-xs font-bold">+10m</button>
+                            <button onClick={() => adjustTime(300)} className="bg-gray-500/20 hover:bg-gray-500/40 rounded py-1 text-xs font-bold">+5m</button>
+                            <button onClick={() => adjustTime(30)} className="bg-gray-500/20 hover:bg-gray-500/40 rounded py-1 text-xs font-bold">+30s</button>
+                            <button onClick={() => adjustTime(10)} className="bg-gray-500/20 hover:bg-gray-500/40 rounded py-1 text-xs font-bold">+10s</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const CountdownDateTool = ({ data, onUpdate, globalProps, width, height }) => {
+            const { lang, theme } = globalProps;
+            const size = Math.min(width, height);
+            const [timeLeft, setTimeLeft] = useState(null);
+
+            // Default to tomorrow if not set
+            useEffect(() => {
+                if (!data.date) {
+                    const tomorrow = new Date();
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    // Format YYYY-MM-DD for input type="date"
+                    const formatted = tomorrow.toISOString().split('T')[0];
+                    onUpdate({ date: formatted, title: '' });
+                }
+            }, []);
+
+            useEffect(() => {
+                const calculateTime = () => {
+                    if (!data.date) return;
+                    const target = new Date(data.date);
+                    // Set target to midnight
+                    target.setHours(0, 0, 0, 0); 
+                    
+                    const nowMidnight = new Date();
+                    nowMidnight.setHours(0, 0, 0, 0);
+                    
+                    const diff = target - nowMidnight;
+                    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+                    setTimeLeft(days);
+                };
+                
+                calculateTime();
+                const timer = setInterval(calculateTime, 1000 * 60); 
+                return () => clearInterval(timer);
+            }, [data.date]);
+
+            return (
+                <div className={`h-full w-full flex flex-col p-4 ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}>
+                    {/* Top: Title Input */}
+                    <div className="mb-2">
+                        <input 
+                            type="text"
+                            className="w-full bg-transparent text-center font-bold focus:outline-none border-b border-transparent focus:border-current/30 transition-colors placeholder-current/30"
+                            style={{ fontSize: size * 0.1 }}
+                            placeholder={TRANSLATIONS[lang].date_placeholder}
+                            value={data.title || ''}
+                            onChange={(e) => onUpdate({ title: e.target.value })}
+                            onMouseDown={(e) => e.stopPropagation()}
+                        />
+                    </div>
+                    
+                    {/* Middle: Countdown */}
+                    <div className="flex-1 flex flex-col items-center justify-center font-mono font-bold leading-none select-none pointer-events-none">
+                        <span style={{ fontSize: size * 0.4 }}>
+                            {timeLeft !== null ? (timeLeft >= 0 ? timeLeft : 0) : '-'}
+                        </span>
+                        <span style={{ fontSize: size * 0.1 }} className="opacity-60 uppercase mt-2">
+                            {TRANSLATIONS[lang].date_days_left}
+                        </span>
+                    </div>
+
+                    {/* Bottom: Date Picker */}
+                    <div className="mt-auto flex justify-center pt-2">
+                        <input 
+                            type="date"
+                            className={`bg-transparent border rounded px-2 py-1 text-center text-xs opacity-30 hover:opacity-100 focus:opacity-100 transition focus:outline-none ${theme === 'dark' ? 'border-gray-500 text-white' : 'border-gray-400 text-gray-900'}`}
+                            value={data.date || ''}
+                            onChange={(e) => onUpdate({ date: e.target.value })}
+                            onMouseDown={(e) => e.stopPropagation()}
+                        />
+                    </div>
+                </div>
+            );
+        };
+
+        const ClockTool = ({ data, onUpdate, globalProps, width, height }) => {
+            const { lang, theme } = globalProps;
+            const [time, setTime] = useState(new Date());
+
+            useEffect(() => {
+                const timer = setInterval(() => setTime(new Date()), 1000);
+                return () => clearInterval(timer);
+            }, []);
+
+            const toggleMode = () => {
+                const modes = ['digital', 'analog'];
+                const currentIndex = modes.indexOf(data.mode || 'digital');
+                const nextMode = modes[(currentIndex + 1) % modes.length];
+                onUpdate({ mode: nextMode });
+            };
+
+            const mode = data.mode || 'digital';
+            const size = Math.min(width, height);
+            
+            return (
+                <div className={`h-full w-full flex flex-col items-center justify-center relative ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}>
+                    <div className="absolute top-2 right-2 z-10">
+                        <button 
+                            onClick={toggleMode}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            className="text-xs px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 opacity-50 hover:opacity-100 transition"
+                        >
+                            {mode === 'digital' ? TRANSLATIONS[lang].clock_digital : TRANSLATIONS[lang].clock_analog}
+                        </button>
+                    </div>
+
+                    {mode === 'analog' ? (
+                        <div 
+                            className="relative rounded-full border-4 border-current flex items-center justify-center"
+                            style={{ width: size * 0.8, height: size * 0.8 }}
+                        >
+                            {[...Array(12)].map((_, i) => (
+                                <div 
+                                key={i} 
+                                className="absolute w-1 h-3 bg-current"
+                                style={{ 
+                                    left: '50%', top: '50%',
+                                    transform: `translate(-50%, -50%) rotate(${i * 30}deg) translateY(-${size * 0.35}px)`
+                                }}
+                                />
+                            ))}
+                            <div 
+                                className="absolute bg-current rounded-full origin-bottom" 
+                                style={{ 
+                                    width: size * 0.03, height: size * 0.25,
+                                    left: '50%', bottom: '50%', transform: `translateX(-50%) rotate(${(time.getHours() % 12 * 30) + (0.5 * time.getMinutes())}deg)` 
+                                }} 
+                            />
+                            <div 
+                                className="absolute bg-current rounded-full origin-bottom opacity-70" 
+                                style={{ 
+                                    width: size * 0.02, height: size * 0.35,
+                                    left: '50%', bottom: '50%', transform: `translateX(-50%) rotate(${time.getMinutes() * 6}deg)` 
+                                }} 
+                            />
+                            <div className="absolute rounded-full z-10 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-red-500" style={{ width: size * 0.06, height: size * 0.06 }} />
+                        </div>
+                    ) : (
+                        <div className="text-center pointer-events-none select-none">
+                            <div className="font-mono font-bold tracking-wider" style={{ fontSize: size * 0.25 }}>
+                                {time.toLocaleTimeString([], { hour12: false })}
+                            </div>
+                            <div className="opacity-60 mt-2" style={{ fontSize: size * 0.08 }}>
+                                {time.toLocaleDateString()}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const Lottery = ({ data, onUpdate, globalProps }) => {
+            const { lang, theme, classList } = globalProps;
+            const [count, setCount] = useState(1);
+            const [results, setResults] = useState(data.results || []);
+
+            const handleDraw = () => {
+                const shuffled = [...classList].sort(() => 0.5 - Math.random());
+                const selected = shuffled.slice(0, Math.min(count, classList.length));
+                setResults(selected);
+                onUpdate({ results: selected });
+            };
+
+            return (
+                <div className={`h-full w-full flex flex-col p-4 ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}>
+                <div className="flex items-center gap-2 mb-4">
+                    <span className="text-sm whitespace-nowrap">{TRANSLATIONS[lang].draw_count}:</span>
+                    <input 
+                    type="number" min="1" max={classList.length} value={count}
+                    onChange={(e) => setCount(parseInt(e.target.value) || 1)}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    className={`w-16 p-1 rounded border ${theme === 'dark' ? 'bg-gray-700 border-gray-600' : 'bg-gray-100 border-gray-300'}`}
+                    />
+                    <button 
+                    onClick={handleDraw} onMouseDown={(e) => e.stopPropagation()}
+                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-1 px-3 rounded transition flex items-center justify-center gap-2"
+                    >
+                    <RefreshCw size={14} /> {TRANSLATIONS[lang].draw_btn}
+                    </button>
+                </div>
+                <div className="flex-1 overflow-auto border-t border-gray-500/20 pt-2" onMouseDown={(e) => e.stopPropagation()}>
+                    {results.length > 0 ? (
+                    <div className="grid grid-cols-1 gap-2">
+                        <h4 className="text-xs uppercase tracking-wider opacity-50 mb-1">{TRANSLATIONS[lang].draw_result}</h4>
+                        {results.map((p, idx) => (
+                        <div key={idx} className={`p-3 rounded flex justify-between items-center ${theme === 'dark' ? 'bg-gray-700/50' : 'bg-gray-100'}`}>
+                            <span className="font-mono font-bold text-3xl text-purple-500">#{p.no}</span>
+                            <span className="font-medium text-xl truncate ml-4">{p.name}</span>
+                        </div>
+                        ))}
+                    </div>
+                    ) : (
+                    <div className="h-full flex items-center justify-center opacity-30"><Users size={48} /></div>
+                    )}
+                </div>
+                </div>
+            );
+        };
+
+        const Grouper = ({ data, onUpdate, globalProps }) => {
+            const { lang, theme, classList } = globalProps;
+            const [groupCount, setGroupCount] = useState(4);
+            const [groups, setGroups] = useState(data.groups || []);
+
+            const handleGroup = () => {
+                if (groupCount < 1) return;
+                const shuffled = [...classList].sort(() => 0.5 - Math.random());
+                const newGroups = Array.from({ length: groupCount }, () => []);
+                shuffled.forEach((student, index) => { newGroups[index % groupCount].push(student); });
+                setGroups(newGroups);
+                onUpdate({ groups: newGroups });
+            };
+
+            return (
+                <div className={`h-full w-full flex flex-col p-4 ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}>
+                <div className="flex items-center gap-2 mb-4">
+                    <span className="text-sm whitespace-nowrap">{TRANSLATIONS[lang].group_count}:</span>
+                    <input 
+                    type="number" min="1" max={classList.length} value={groupCount}
+                    onChange={(e) => setGroupCount(parseInt(e.target.value) || 1)}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    className={`w-16 p-1 rounded border ${theme === 'dark' ? 'bg-gray-700 border-gray-600' : 'bg-gray-100 border-gray-300'}`}
+                    />
+                    <button 
+                    onClick={handleGroup} onMouseDown={(e) => e.stopPropagation()}
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white py-1 px-3 rounded transition flex items-center justify-center gap-2"
+                    >
+                    <Grid size={14} /> {TRANSLATIONS[lang].group_btn}
+                    </button>
+                </div>
+                <div className="flex-1 overflow-auto" onMouseDown={(e) => e.stopPropagation()}>
+                    {groups.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-3">
+                        {groups.map((g, idx) => (
+                        <div key={idx} className={`p-3 rounded border ${theme === 'dark' ? 'bg-gray-700/30 border-gray-600' : 'bg-gray-50 border-gray-200'}`}>
+                            <div className="text-sm font-bold mb-2 opacity-70">Group {idx + 1}</div>
+                            <div className="flex flex-wrap gap-2">
+                            {g.map(s => <span key={s.no} className="px-3 py-1 rounded bg-green-500/20 text-green-600 text-base font-bold">{s.no}</span>)}
+                            </div>
+                        </div>
+                        ))}
+                    </div>
+                    ) : (
+                    <div className="h-full flex items-center justify-center opacity-30"><Grid size={48} /></div>
+                    )}
+                </div>
+                </div>
+            );
+        };
+
+        const SettingsPanel = ({ globalProps }) => {
+            const { lang, setLang, theme, setTheme, classListText, setClassListText, saveClassList } = globalProps;
+            return (
+                <div 
+                className={`h-full w-full flex flex-col p-6 ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} overflow-auto`}
+                onMouseDown={(e) => e.stopPropagation()}
+                >
+                <h2 className="text-xl font-bold mb-6 flex items-center gap-2 border-b pb-2 border-gray-500/20">
+                    <Settings size={24} /> {TRANSLATIONS[lang].setting_title}
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div className="space-y-2">
+                    <label className="text-sm font-semibold flex items-center gap-2"><Languages size={16} /> {TRANSLATIONS[lang].lang_label}</label>
+                    <div className="flex gap-2">
+                        <button onClick={() => setLang('zh')} className={`flex-1 py-2 rounded border ${lang === 'zh' ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-500/50 hover:bg-gray-500/10'}`}>中文</button>
+                        <button onClick={() => setLang('en')} className={`flex-1 py-2 rounded border ${lang === 'en' ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-500/50 hover:bg-gray-500/10'}`}>English</button>
+                    </div>
+                    </div>
+                    <div className="space-y-2">
+                    <label className="text-sm font-semibold flex items-center gap-2"><Palette size={16} /> {TRANSLATIONS[lang].theme_label}</label>
+                    <div className="flex gap-2">
+                        <button onClick={() => setTheme('dark')} className={`flex-1 py-2 rounded border ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600 ring-2 ring-blue-500' : 'bg-gray-200 text-gray-800 border-gray-300'}`}>{TRANSLATIONS[lang].theme_dark}</button>
+                        <button onClick={() => setTheme('light')} className={`flex-1 py-2 rounded border ${theme === 'light' ? 'bg-gray-100 text-gray-900 border-gray-300 ring-2 ring-blue-500' : 'bg-gray-700 text-gray-300 border-gray-600'}`}>{TRANSLATIONS[lang].theme_light}</button>
+                    </div>
+                    </div>
+                </div>
+                <div className="flex-1 flex flex-col space-y-2">
+                    <label className="text-sm font-semibold flex items-center gap-2 justify-between">
+                    <span className="flex items-center gap-2"><List size={16} /> {TRANSLATIONS[lang].class_list}</span>
+                    <button onClick={saveClassList} className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded flex items-center gap-1"><Check size={12} /> {TRANSLATIONS[lang].save}</button>
+                    </label>
+                    <textarea
+                    value={classListText} onChange={(e) => setClassListText(e.target.value)}
+                    className={`flex-1 w-full p-3 rounded font-mono text-sm border ${theme === 'dark' ? 'bg-gray-900 border-gray-700 text-gray-300' : 'bg-gray-50 border-gray-300 text-gray-900'}`}
+                    />
+                </div>
+                </div>
+            );
+        };
+
+        // --- Confirm Modal ---
+        const ConfirmModal = ({ isOpen, onClose, onConfirm, message, theme, lang }) => {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 backdrop-blur-sm" onMouseDown={(e) => e.stopPropagation()}>
+                <div className={`p-6 rounded-xl shadow-2xl border ${theme === 'dark' ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-200 text-gray-900'} max-w-sm w-full mx-4 animate-in fade-in zoom-in duration-200`}>
+                    <div className="flex items-center gap-3 mb-4 text-amber-500">
+                    <AlertTriangle size={24} />
+                    <h3 className="text-lg font-bold">{TRANSLATIONS[lang].confirm}</h3>
+                    </div>
+                    <p className="mb-6 opacity-90">{message}</p>
+                    <div className="flex justify-end gap-3">
+                    <button 
+                        onClick={onClose} 
+                        className={`px-4 py-2 rounded font-medium transition ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                    >
+                        {TRANSLATIONS[lang].cancel}
+                    </button>
+                    <button 
+                        onClick={onConfirm} 
+                        className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 font-medium shadow-lg shadow-red-600/20"
+                    >
+                        {TRANSLATIONS[lang].confirm}
+                    </button>
+                    </div>
+                </div>
+                </div>
+            );
+        };
+
+        // --- WindowFrame ---
+        const WindowFrame = ({ 
+            window: w, 
+            onClose, 
+            onUpdate, 
+            onMouseDown, 
+            onBringToFront, 
+            topZIndex, 
+            lang, 
+            theme,
+            globalProps
+        }) => {
+            let Content;
+            let title = "";
+            let icon = null;
+
+            switch (w.type) {
+                case 'note': Content = StickyNote; title = TRANSLATIONS[lang].toolbar_note; icon = <Type size={14}/>; break;
+                case 'image': Content = ImageViewer; title = TRANSLATIONS[lang].toolbar_image; icon = <ImageIcon size={14}/>; break;
+                case 'clock': Content = ClockTool; title = TRANSLATIONS[lang].toolbar_clock; icon = <Clock size={14}/>; break;
+                case 'timer': Content = TimerTool; title = TRANSLATIONS[lang].toolbar_timer; icon = <Timer size={14}/>; break;
+                case 'date': Content = CountdownDateTool; title = TRANSLATIONS[lang].toolbar_date; icon = <CalendarDays size={14}/>; break;
+                case 'draw': Content = Lottery; title = TRANSLATIONS[lang].toolbar_draw; icon = <Users size={14}/>; break;
+                case 'group': Content = Grouper; title = TRANSLATIONS[lang].toolbar_groups; icon = <Grid size={14}/>; break;
+                case 'settings': Content = SettingsPanel; title = TRANSLATIONS[lang].toolbar_settings; icon = <Settings size={14}/>; break;
+                default: Content = () => <div>Unknown</div>;
+            }
+
+            return (
+                <div 
+                className={`absolute rounded-lg shadow-2xl flex flex-col overflow-hidden border transition-shadow duration-200 ${
+                    theme === 'dark' ? 'bg-gray-800 border-gray-700 shadow-black/50' : 'bg-white border-gray-200 shadow-xl'
+                }`}
+                style={{
+                    left: w.x, top: w.y, width: w.w, height: w.h, zIndex: w.z,
+                    boxShadow: w.z === topZIndex ? '0 25px 50px -12px rgba(0, 0, 0, 0.5)' : ''
+                }}
+                onMouseDown={(e) => { 
+                    if (w.z !== topZIndex) onBringToFront(w.id); 
+                }}
+                >
+                <div 
+                    className={`h-9 flex items-center justify-between px-3 cursor-move select-none shrink-0 ${
+                    w.type === 'note' ? 'bg-yellow-100 text-yellow-900/50' :
+                    theme === 'dark' ? 'bg-gray-900/90 text-gray-200' : 'bg-gray-100 text-gray-700'
+                    }`}
+                    onMouseDown={(e) => onMouseDown(e, w.id, 'move')}
+                >
+                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider opacity-70">
+                    {icon} {title}
+                    </div>
+                    <button 
+                    onClick={(e) => { e.stopPropagation(); onClose(w.id); }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    className="hover:bg-red-500 hover:text-white rounded p-1 transition opacity-50 hover:opacity-100"
+                    >
+                    <X size={14} />
+                    </button>
+                </div>
+                <div className="flex-1 overflow-hidden relative flex flex-col">
+                    <Content 
+                        data={w.data || {}} 
+                        onUpdate={(newData) => onUpdate(w.id, newData)} 
+                        globalProps={globalProps}
+                        width={w.w}
+                        height={w.h}
+                    />
+                    <div className="absolute inset-0 pointer-events-none" />
+                </div>
+                <div 
+                    className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize z-50 flex items-center justify-center opacity-50 hover:opacity-100"
+                    onMouseDown={(e) => onMouseDown(e, w.id, 'resize')}
+                >
+                    <div className={`w-1.5 h-1.5 rounded-full ${w.type === 'note' ? 'bg-yellow-600/30' : 'bg-gray-400'}`} />
+                </div>
+                </div>
+            );
+        };
+
+        // --- Main Application Component ---
+        function DesktopApp() {
+            const [lang, setLang] = useState('zh');
+            const [theme, setTheme] = useState('dark');
+            const [windows, setWindows] = useState([]);
+            const [classList, setClassList] = useState(DEFAULT_CLASS_LIST);
+            const [classListText, setClassListText] = useState("");
+            const [nextId, setNextId] = useState(1);
+            const [topZIndex, setTopZIndex] = useState(10);
+            const [dragInfo, setDragInfo] = useState(null);
+            
+            // Modal State
+            const [showConfirm, setShowConfirm] = useState(false);
+
+            useEffect(() => {
+                const cookieLang = getCookie('app_lang');
+                const cookieTheme = getCookie('app_theme');
+                if (cookieLang) setLang(cookieLang);
+                if (cookieTheme) setTheme(cookieTheme);
+
+                const savedWindows = localStorage.getItem('app_windows');
+                const savedClassList = localStorage.getItem('app_class_list');
+
+                if (savedWindows) {
+                try {
+                    const parsed = JSON.parse(savedWindows);
+                    setWindows(parsed);
+                    const maxId = parsed.reduce((max, w) => Math.max(max, w.id), 0);
+                    setNextId(maxId + 1);
+                } catch (e) { console.error("Failed to load windows", e); }
+                }
+
+                if (savedClassList) {
+                try {
+                    const parsed = JSON.parse(savedClassList);
+                    setClassList(parsed);
+                    setClassListText(parsed.map(s => `${s.no} ${s.name}`).join('\n'));
+                } catch (e) { console.error("Failed to load class list", e); }
+                } else {
+                setClassListText(DEFAULT_CLASS_LIST.map(s => `${s.no} ${s.name}`).join('\n'));
+                }
+            }, []);
+
+            useEffect(() => {
+                localStorage.setItem('app_windows', JSON.stringify(windows));
+            }, [windows]);
+
+            useEffect(() => {
+                setCookie('app_lang', lang, 365);
+                setCookie('app_theme', theme, 365);
+            }, [lang, theme]);
+
+            const saveClassList = () => {
+                const lines = classListText.split('\n');
+                const newGenericList = lines.map(line => {
+                const parts = line.trim().split(/\s+/);
+                if (parts.length >= 2) return { no: parts[0], name: parts.slice(1).join(' ') };
+                if (parts.length === 1 && parts[0] !== "") return { no: parts[0], name: "" };
+                return null;
+                }).filter(x => x);
+                
+                setClassList(newGenericList);
+                localStorage.setItem('app_class_list', JSON.stringify(newGenericList));
+                alert(TRANSLATIONS[lang].saved);
+            };
+
+            const addWindow = (type, initialData = {}) => {
+                const newWindow = {
+                id: nextId,
+                type,
+                x: 50 + (nextId % 10) * 20,
+                y: 50 + (nextId % 10) * 20,
+                w: type === 'note' ? 250 : type === 'clock' ? 220 : 400,
+                h: type === 'note' ? 300 : type === 'clock' ? 250 : 300,
+                z: topZIndex + 1,
+                data: initialData
+                };
+                setWindows(prev => [...prev, newWindow]);
+                setTopZIndex(prev => prev + 1);
+                setNextId(prev => prev + 1);
+            };
+
+            const closeWindow = (id) => {
+                setWindows(prev => prev.filter(w => w.id !== id));
+            };
+
+            const bringToFront = (id) => {
+                const maxZ = Math.max(...windows.map(w => w.z), 0);
+                setWindows(prev => prev.map(w => w.id === id ? { ...w, z: maxZ + 1 } : w));
+                setTopZIndex(maxZ + 1);
+            };
+
+            // Trigger Modal
+            const requestClearAll = () => {
+                setShowConfirm(true);
+            };
+
+            // Actual Action
+            const performClearAll = () => {
+                setWindows([]);
+                setShowConfirm(false);
+            };
+
+            const updateWindowData = (id, newData) => {
+                setWindows(prev => prev.map(w => w.id === id ? { ...w, data: { ...w.data, ...newData } } : w));
+            };
+
+            const handleMouseDown = (e, id, type) => {
+                if (e.button !== 0) return;
+                bringToFront(id);
+                const win = windows.find(w => w.id === id);
+                if (!win) return;
+                setDragInfo({ id, startX: e.clientX, startY: e.clientY, initialLeft: win.x, initialTop: win.y, initialW: win.w, initialH: win.h, type });
+            };
+
+            useEffect(() => {
+                const handleMouseMove = (e) => {
+                if (!dragInfo) return;
+                e.preventDefault();
+                const dx = e.clientX - dragInfo.startX;
+                const dy = e.clientY - dragInfo.startY;
+
+                setWindows(prev => prev.map(w => {
+                    if (w.id !== dragInfo.id) return w;
+                    if (dragInfo.type === 'move') {
+                    return { ...w, x: dragInfo.initialLeft + dx, y: dragInfo.initialTop + dy };
+                    } else if (dragInfo.type === 'resize') {
+                    return { ...w, w: Math.max(200, dragInfo.initialW + dx), h: Math.max(150, dragInfo.initialH + dy) };
+                    }
+                    return w;
+                }));
+                };
+                const handleMouseUp = () => setDragInfo(null);
+                if (dragInfo) {
+                window.addEventListener('mousemove', handleMouseMove);
+                window.addEventListener('mouseup', handleMouseUp);
+                }
+                return () => {
+                window.removeEventListener('mousemove', handleMouseMove);
+                window.removeEventListener('mouseup', handleMouseUp);
+                };
+            }, [dragInfo]);
+
+            // Context-like object to pass to windows
+            const globalProps = {
+                lang, setLang, theme, setTheme,
+                classList, classListText, setClassListText, saveClassList
+            };
+
+            return (
+                <div className={`w-full h-screen overflow-hidden flex flex-col ${theme === 'dark' ? 'bg-slate-900' : 'bg-slate-100'} transition-colors duration-300 font-sans relative`}>
+                <div className="flex-1 relative overflow-hidden" id="desktop-area">
+                    {windows.length === 0 && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10">
+                        <div className={`text-6xl font-bold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>Workspace</div>
+                    </div>
+                    )}
+                    {windows.map(w => (
+                    <WindowFrame 
+                        key={w.id} 
+                        window={w} 
+                        onClose={closeWindow}
+                        onUpdate={updateWindowData}
+                        onMouseDown={handleMouseDown}
+                        onBringToFront={bringToFront}
+                        topZIndex={topZIndex}
+                        lang={lang}
+                        theme={theme}
+                        globalProps={globalProps}
+                    />
+                    ))}
+                    
+                    <ConfirmModal 
+                    isOpen={showConfirm}
+                    onClose={() => setShowConfirm(false)}
+                    onConfirm={performClearAll}
+                    message={TRANSLATIONS[lang].clear_confirm}
+                    theme={theme}
+                    lang={lang}
+                    />
+                </div>
+
+                {/* Back Button */}
+                <a 
+                    href="index.html"
+                    className={`absolute bottom-4 left-4 z-[10000] px-4 py-3 rounded-xl font-bold shadow-lg transition-all hover:-translate-y-1 flex items-center gap-2 no-underline ${
+                        theme === 'dark' 
+                            ? 'bg-gray-800/80 backdrop-blur-md border border-gray-700 text-gray-300 hover:bg-gray-700 hover:text-white' 
+                            : 'bg-white/80 backdrop-blur-md border border-white/50 text-gray-600 hover:bg-gray-200 hover:text-gray-900'
+                    }`}
+                >
+                    <ArrowLeft size={20} />
+                    <span className="hidden md:inline">返回教室工具箱</span>
+                </a>
+
+                <div className={`h-16 mb-2 mx-4 rounded-2xl flex items-center justify-center gap-2 px-4 shadow-lg z-[9999] border transition-all ${
+                    theme === 'dark' ? 'bg-gray-800/80 backdrop-blur-md border-gray-700 text-gray-300' : 'bg-white/80 backdrop-blur-md border-white/50 text-gray-600'
+                }`}>
+                    <ToolButton icon={<Type />} label={TRANSLATIONS[lang].toolbar_note} onClick={() => addWindow('note', { text: '', color: 'bg-yellow-200', fontSize: 24 })} theme={theme} />
+                    <ToolButton icon={<ImageIcon />} label={TRANSLATIONS[lang].toolbar_image} onClick={() => addWindow('image', { url: '' })} theme={theme} />
+                    <ToolButton icon={<Clock />} label={TRANSLATIONS[lang].toolbar_clock} onClick={() => addWindow('clock', { mode: 'digital' })} theme={theme} />
+                    <ToolButton icon={<Timer />} label={TRANSLATIONS[lang].toolbar_timer} onClick={() => addWindow('timer')} theme={theme} />
+                    <ToolButton icon={<CalendarDays />} label={TRANSLATIONS[lang].toolbar_date} onClick={() => addWindow('date')} theme={theme} />
+                    <div className="w-px h-8 bg-current opacity-20 mx-1"></div>
+                    <ToolButton icon={<Users />} label={TRANSLATIONS[lang].toolbar_draw} onClick={() => addWindow('draw')} theme={theme} />
+                    <ToolButton icon={<Grid />} label={TRANSLATIONS[lang].toolbar_groups} onClick={() => addWindow('group')} theme={theme} />
+                    <div className="w-px h-8 bg-current opacity-20 mx-1"></div>
+                    <ToolButton icon={<Trash2 className="text-red-500" />} label={TRANSLATIONS[lang].toolbar_clear} onClick={requestClearAll} theme={theme} />
+                    <ToolButton icon={<Settings />} label={TRANSLATIONS[lang].toolbar_settings} onClick={() => addWindow('settings')} theme={theme} />
+                </div>
+                </div>
+            );
+        }
+
+        const ToolButton = ({ icon, label, onClick, theme }) => (
+            <button 
+                onClick={onClick}
+                className={`group relative p-3 rounded-xl transition-all duration-200 hover:-translate-y-1 ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
+                title={label}
+            >
+                {React.cloneElement(icon, { size: 24 })}
+                <span className={`absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none ${theme === 'dark' ? 'bg-black text-white' : 'bg-gray-800 text-white'}`}>
+                {label}
+                </span>
+            </button>
+        );
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<DesktopApp />);
+    </script>
+</body>
+</html>
