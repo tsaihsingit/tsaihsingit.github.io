@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>教室工具箱</title>
+    <style>
+        :root {
+            --bg-color: #f4f6f8;
+            --card-bg: #ffffff;
+            --primary-color: #3b82f6;
+            --text-main: #1f2937;
+            --text-sub: #6b7280;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --hover-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 40px 20px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: var(--text-main);
+        }
+
+        .subtitle {
+            color: var(--text-sub);
+            margin-bottom: 15px;
+        }
+
+        /* 時間顯示樣式 */
+        .time-display {
+            font-size: 1.25rem;
+            color: var(--primary-color);
+            font-weight: 500;
+            background: #e0f2fe; /* 淺藍色背景 */
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 50px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        /* 類別區塊 */
+        .category-section {
+            margin-bottom: 40px;
+        }
+
+        .category-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e5e7eb;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+        }
+
+        /* 網格佈局 */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        /* 卡片樣式 */
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            text-decoration: none;
+            color: inherit;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            box-sizing: border-box;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--hover-shadow);
+            border-color: var(--primary-color);
+        }
+
+        .card-icon {
+            font-size: 2rem;
+            margin-bottom: 15px;
+        }
+
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin: 0 0 8px 0;
+            color: var(--text-main);
+        }
+
+        .card-desc {
+            font-size: 0.875rem;
+            color: var(--text-sub);
+            margin: 0;
+        }
+
+        /* 響應式微調 */
+        @media (max-width: 600px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>工具連結入口</h1>
+            <p class="subtitle">所有常用系統與資源的快速導航</p>
+            <!-- 時間顯示區域 -->
+            <div id="clock" class="time-display">載入時間中...</div>
+        </header>
+
+        <!-- 這裡的內容將由 JavaScript 動態產生 -->
+        <div id="content-area"></div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. 設定區域：請在此處新增或修改連結
+        // ==========================================
+        const toolsData = [
+            {
+                category: "教室工具箱",
+                items: [
+                    { name: "倒數計時", url: "countdown.html", icon: "⏰", desc: "倒數計時" },
+                    { name: "留言板", url: "message.html", icon: "🗒", desc: "留言板" },
+                    { name: "拉霸抽籤", url: "random.html", icon: "🎰", desc: "拉霸抽籤" },
+                    { name: "段考看板系統", url: "exam.html", icon: "ℹ", desc: "段考看板系統" },
+                    { name: "學生計分", url: "student.html", icon: "👤", desc: "學生計分" },
+                    { name: "小組計分", url: "group.html", icon: "👥", desc: "小組計分" },
+                ]
+            },
+            {
+                category: "政府資源",
+                items: [
+                    { name: "國字標準字體筆順學習網", url: "https://stroke-order.learningweb.moe.edu.tw/", icon: "🖊", desc: "" },
+                ]
+            },
+        ];
+
+        // ==========================================
+        // 2. 時間顯示邏輯
+        // ==========================================
+        function updateTime() {
+            const now = new Date();
+            const options = {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false, // 使用 24 小時制
+                weekday: 'long' // 顯示星期幾
+            };
+            // 格式範例：2023/10/27 星期五 14:30:05
+            const timeString = now.toLocaleString('zh-TW', options).replace(/,/g, ''); 
+            
+            document.getElementById('clock').textContent = timeString;
+        }
+
+        // ==========================================
+        // 3. 連結渲染邏輯
+        // ==========================================
+        function renderTools() {
+            const container = document.getElementById('content-area');
+            let htmlContent = '';
+
+            toolsData.forEach(group => {
+                htmlContent += `
+                    <div class="category-section">
+                        <h2 class="category-title">${group.category}</h2>
+                        <div class="grid">
+                `;
+
+                group.items.forEach(tool => {
+                    htmlContent += `
+                        <a href="${tool.url}" target="_blank" class="card">
+                            <div class="card-icon">${tool.icon}</div>
+                            <h3 class="card-title">${tool.name}</h3>
+                            <p class="card-desc">${tool.desc}</p>
+                        </a>
+                    `;
+                });
+
+                htmlContent += `
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = htmlContent;
+        }
+
+        // ==========================================
+        // 4. 初始化執行
+        // ==========================================
+        document.addEventListener('DOMContentLoaded', () => {
+            renderTools();       // 產生連結
+            updateTime();        // 立即顯示時間
+            setInterval(updateTime, 1000); // 每秒更新一次
+        });
+    </script>
+</body>
+</html>
