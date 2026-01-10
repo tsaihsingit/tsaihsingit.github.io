@@ -1,6 +1,58 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
+	<script>
+		// ==========================================
+        // 1. 設定區域：請在此處新增或修改連結
+        // ==========================================
+        const toolsData = [
+            {
+                category: "教室工具箱",
+                items: [
+                    { name: "黑板工具", url: "screen.html", icon: "🧰", desc: "各類小工具整理" },
+                    { name: "倒數計時", url: "countdown.html", icon: "⏰", desc: "" },
+                    { name: "留言板", url: "message.html", icon: "🗒", desc: "內容自動儲存" },
+                    { name: "拉霸抽籤", url: "random.html", icon: "🎰", desc: "自動儲存學生名單" },
+                    { name: "段考看板系統", url: "exam.html", icon: "ℹ", desc: "考試時間提醒" },
+                    { name: "學生計分", url: "student.html", icon: "👤", desc: "自動儲存學生名單及分數" },
+                    { name: "小組計分", url: "group.html", icon: "👥", desc: "每次開啟重置" },
+                ]
+            },
+            {
+                category: "再興小學",
+                items: [
+                    { name: "再興小學網站", url: "https://www.tsps.tp.edu.tw/", icon: "🏫", desc: "" },
+                    { name: "電子聯絡簿", url: "https://www.tsps.tp.edu.tw/nss/p/contactbook", icon: "🏫", desc: "" },
+                    { name: "教學專區", url: "https://www.tsps.tp.edu.tw/nss/p/25", icon: "🏫", desc: "" },
+                    { name: "YouTube頻道", url: "https://www.youtube.com/@tsaihsingschool", icon: "🎞", desc: "" },                    
+                ]
+            },
+            {
+                category: "政府資源",
+                items: [
+                    { name: "COOC+", url: "https://coocplus.tp.edu.tw/", icon: "🎞", desc: "學習影片" },
+                    { name: "國字標準字體筆順學習網", url: "https://stroke-order.learningweb.moe.edu.tw/", icon: "🖊", desc: "" },
+                    { name: "臺灣台語動畫網", url: "https://twbangga.moe.edu.tw/", icon: "🎞", desc: "" },
+                    { name: "好客影音平台", url: "https://stream.thcdc.hakka.gov.tw/", icon: "🎞", desc: "" },
+                    { name: "來上客", url: "https://12basic.hakka.gov.tw/", icon: "🏫", desc: "" },
+                    { name: "資訊素養與倫理", url: "https://techpro.tp.edu.tw/static/information/main", icon: "🏫", desc: "" },
+                    
+                ]
+            },
+            {
+                category: "YouTube影片",
+                items: [
+                    { name: "均一教育平台", url: "https://www.youtube.com/@JunyiAcademy", icon: "🎞", desc: "" },
+                    { name: "小公視", url: "https://www.youtube.com/@PTSKIDS", icon: "🎞", desc: "" },
+                    { name: "泛科學", url: "https://www.youtube.com/@PanScitw", icon: "🎞", desc: "" },
+                    { name: "媽媽老師", url: "https://www.youtube.com/@MamaLaoshi", icon: "🎞", desc: "" },
+                    { name: "東吳物理", url: "https://www.youtube.com/@su_physics", icon: "🎞", desc: "" },
+                    { name: "阿駿日常", url: "https://www.youtube.com/@ajim0422", icon: "🎞", desc: "" },
+                    { name: "漫士沉思录", url: "https://www.youtube.com/@manshi_math", icon: "🎞", desc: "" },
+                ]
+            },
+        ];
+	</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>教室工具箱</title>
@@ -147,32 +199,6 @@
     </div>
 
     <script>
-        // ==========================================
-        // 1. 設定區域：請在此處新增或修改連結
-        // ==========================================
-        const toolsData = [
-            {
-                category: "教室工具箱",
-                items: [
-                    { name: "黑板工具", url: "screen.html", icon: "🧰", desc: "黑板工具包" },
-                    { name: "倒數計時", url: "countdown.html", icon: "⏰", desc: "" },
-                    { name: "留言板", url: "message.html", icon: "🗒", desc: "自動儲存留言板" },
-                    { name: "拉霸抽籤", url: "random.html", icon: "🎰", desc: "自動儲存學生名單拉霸抽籤" },
-                    { name: "段考看板系統", url: "exam.html", icon: "ℹ", desc: "考試時間提醒" },
-                    { name: "學生計分", url: "student.html", icon: "👤", desc: "" },
-                    { name: "小組計分", url: "group.html", icon: "👥", desc: "" },
-                ]
-            },
-            {
-                category: "政府資源",
-                items: [
-                    { name: "COOC+", url: "https://coocplus.tp.edu.tw/", icon: "🎞", desc: "學習影片" },
-                    { name: "國字標準字體筆順學習網", url: "https://stroke-order.learningweb.moe.edu.tw/", icon: "🖊", desc: "" },
-                    
-                ]
-            },
-        ];
-
         // ==========================================
         // 2. 時間顯示邏輯
         // ==========================================
