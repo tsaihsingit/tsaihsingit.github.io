@@ -42,6 +42,7 @@
         /* Font settings */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overscroll-behavior: none; /* Prevent pull-to-refresh on mobile */
         }
         
         /* Animations for Modal */
@@ -249,11 +250,13 @@
                     fontSize: `${fontSize}px`
                     }}
                     onMouseDown={(e) => e.stopPropagation()} 
+                    onTouchStart={(e) => e.stopPropagation()}
                 />
                 
                 <div 
                     className="h-10 flex items-center px-2 gap-2 border-t border-black/5 bg-black/5 opacity-0 hover:opacity-100 transition-opacity"
                     onMouseDown={(e) => e.stopPropagation()}
+                    onTouchStart={(e) => e.stopPropagation()}
                 >
                     <div className="flex items-center bg-white/50 rounded p-0.5">
                         <button onClick={() => changeFontSize(-2)} className="p-1 hover:bg-black/10 rounded"><Minus size={12}/></button>
@@ -300,7 +303,8 @@
                     <img src={data.url} alt="User content" className="w-full h-full object-contain pointer-events-none" />
                     <button 
                         onClick={() => onUpdate({ url: '' })}
-                        onMouseDown={(e) => e.stopPropagation()} 
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onTouchStart={(e) => e.stopPropagation()}
                         className="absolute top-2 right-2 bg-black/50 p-1 rounded hover:bg-red-500 opacity-0 group-hover:opacity-100 transition z-10"
                     >
                         <Trash2 size={16} />
@@ -317,6 +321,7 @@
                         onChange={(e) => onUpdate({ url: e.target.value })}
                         onKeyDown={(e) => e.stopPropagation()} 
                         onMouseDown={(e) => e.stopPropagation()}
+                        onTouchStart={(e) => e.stopPropagation()}
                     />
                     </div>
                 )}
@@ -526,6 +531,7 @@
                             value={data.title || ''}
                             onChange={(e) => onUpdate({ title: e.target.value })}
                             onMouseDown={(e) => e.stopPropagation()}
+                            onTouchStart={(e) => e.stopPropagation()}
                         />
                     </div>
                     
@@ -547,6 +553,7 @@
                             value={data.date || ''}
                             onChange={(e) => onUpdate({ date: e.target.value })}
                             onMouseDown={(e) => e.stopPropagation()}
+                            onTouchStart={(e) => e.stopPropagation()}
                         />
                     </div>
                 </div>
@@ -578,6 +585,7 @@
                         <button 
                             onClick={toggleMode}
                             onMouseDown={(e) => e.stopPropagation()}
+                            onTouchStart={(e) => e.stopPropagation()}
                             className="text-xs px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 opacity-50 hover:opacity-100 transition"
                         >
                             {mode === 'digital' ? TRANSLATIONS[lang].clock_digital : TRANSLATIONS[lang].clock_analog}
@@ -649,16 +657,17 @@
                     type="number" min="1" max={classList.length} value={count}
                     onChange={(e) => setCount(parseInt(e.target.value) || 1)}
                     onMouseDown={(e) => e.stopPropagation()}
+                    onTouchStart={(e) => e.stopPropagation()}
                     className={`w-16 p-1 rounded border ${theme === 'dark' ? 'bg-gray-700 border-gray-600' : 'bg-gray-100 border-gray-300'}`}
                     />
                     <button 
-                    onClick={handleDraw} onMouseDown={(e) => e.stopPropagation()}
+                    onClick={handleDraw} onMouseDown={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()}
                     className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-1 px-3 rounded transition flex items-center justify-center gap-2"
                     >
                     <RefreshCw size={14} /> {TRANSLATIONS[lang].draw_btn}
                     </button>
                 </div>
-                <div className="flex-1 overflow-auto border-t border-gray-500/20 pt-2" onMouseDown={(e) => e.stopPropagation()}>
+                <div className="flex-1 overflow-auto border-t border-gray-500/20 pt-2" onMouseDown={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()}>
                     {results.length > 0 ? (
                     <div className="grid grid-cols-1 gap-2">
                         <h4 className="text-xs uppercase tracking-wider opacity-50 mb-1">{TRANSLATIONS[lang].draw_result}</h4>
@@ -699,16 +708,17 @@
                     type="number" min="1" max={classList.length} value={groupCount}
                     onChange={(e) => setGroupCount(parseInt(e.target.value) || 1)}
                     onMouseDown={(e) => e.stopPropagation()}
+                    onTouchStart={(e) => e.stopPropagation()}
                     className={`w-16 p-1 rounded border ${theme === 'dark' ? 'bg-gray-700 border-gray-600' : 'bg-gray-100 border-gray-300'}`}
                     />
                     <button 
-                    onClick={handleGroup} onMouseDown={(e) => e.stopPropagation()}
+                    onClick={handleGroup} onMouseDown={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()}
                     className="flex-1 bg-green-600 hover:bg-green-700 text-white py-1 px-3 rounded transition flex items-center justify-center gap-2"
                     >
                     <Grid size={14} /> {TRANSLATIONS[lang].group_btn}
                     </button>
                 </div>
-                <div className="flex-1 overflow-auto" onMouseDown={(e) => e.stopPropagation()}>
+                <div className="flex-1 overflow-auto" onMouseDown={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()}>
                     {groups.length > 0 ? (
                     <div className="grid grid-cols-2 gap-3">
                         {groups.map((g, idx) => (
@@ -734,6 +744,7 @@
                 <div 
                 className={`h-full w-full flex flex-col p-6 ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} overflow-auto`}
                 onMouseDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
                 >
                 <h2 className="text-xl font-bold mb-6 flex items-center gap-2 border-b pb-2 border-gray-500/20">
                     <Settings size={24} /> {TRANSLATIONS[lang].setting_title}
@@ -772,7 +783,7 @@
         const ConfirmModal = ({ isOpen, onClose, onConfirm, message, theme, lang }) => {
             if (!isOpen) return null;
             return (
-                <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 backdrop-blur-sm" onMouseDown={(e) => e.stopPropagation()}>
+                <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 backdrop-blur-sm" onMouseDown={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()}>
                 <div className={`p-6 rounded-xl shadow-2xl border ${theme === 'dark' ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-200 text-gray-900'} max-w-sm w-full mx-4 animate-in fade-in zoom-in duration-200`}>
                     <div className="flex items-center gap-3 mb-4 text-amber-500">
                     <AlertTriangle size={24} />
@@ -803,7 +814,7 @@
             window: w, 
             onClose, 
             onUpdate, 
-            onMouseDown, 
+            onDragStart, 
             onBringToFront, 
             topZIndex, 
             lang, 
@@ -838,13 +849,17 @@
                 onMouseDown={(e) => { 
                     if (w.z !== topZIndex) onBringToFront(w.id); 
                 }}
+                onTouchStart={(e) => { 
+                    if (w.z !== topZIndex) onBringToFront(w.id); 
+                }}
                 >
                 <div 
                     className={`h-9 flex items-center justify-between px-3 cursor-move select-none shrink-0 ${
                     w.type === 'note' ? 'bg-yellow-100 text-yellow-900/50' :
                     theme === 'dark' ? 'bg-gray-900/90 text-gray-200' : 'bg-gray-100 text-gray-700'
                     }`}
-                    onMouseDown={(e) => onMouseDown(e, w.id, 'move')}
+                    onMouseDown={(e) => onDragStart(e, w.id, 'move')}
+                    onTouchStart={(e) => onDragStart(e, w.id, 'move')}
                 >
                     <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider opacity-70">
                     {icon} {title}
@@ -852,6 +867,7 @@
                     <button 
                     onClick={(e) => { e.stopPropagation(); onClose(w.id); }}
                     onMouseDown={(e) => e.stopPropagation()}
+                    onTouchStart={(e) => e.stopPropagation()}
                     className="hover:bg-red-500 hover:text-white rounded p-1 transition opacity-50 hover:opacity-100"
                     >
                     <X size={14} />
@@ -869,7 +885,8 @@
                 </div>
                 <div 
                     className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize z-50 flex items-center justify-center opacity-50 hover:opacity-100"
-                    onMouseDown={(e) => onMouseDown(e, w.id, 'resize')}
+                    onMouseDown={(e) => onDragStart(e, w.id, 'resize')}
+                    onTouchStart={(e) => onDragStart(e, w.id, 'resize')}
                 >
                     <div className={`w-1.5 h-1.5 rounded-full ${w.type === 'note' ? 'bg-yellow-600/30' : 'bg-gray-400'}`} />
                 </div>
@@ -984,39 +1001,56 @@
                 setWindows(prev => prev.map(w => w.id === id ? { ...w, data: { ...w.data, ...newData } } : w));
             };
 
-            const handleMouseDown = (e, id, type) => {
-                if (e.button !== 0) return;
+            const handleDragStart = (e, id, type) => {
+                if (e.type === 'mousedown' && e.button !== 0) return;
+                
+                // Allow touch events
+                const clientX = e.type.startsWith('touch') ? e.touches[0].clientX : e.clientX;
+                const clientY = e.type.startsWith('touch') ? e.touches[0].clientY : e.clientY;
+
                 bringToFront(id);
                 const win = windows.find(w => w.id === id);
                 if (!win) return;
-                setDragInfo({ id, startX: e.clientX, startY: e.clientY, initialLeft: win.x, initialTop: win.y, initialW: win.w, initialH: win.h, type });
+                setDragInfo({ id, startX: clientX, startY: clientY, initialLeft: win.x, initialTop: win.y, initialW: win.w, initialH: win.h, type });
             };
 
             useEffect(() => {
-                const handleMouseMove = (e) => {
-                if (!dragInfo) return;
-                e.preventDefault();
-                const dx = e.clientX - dragInfo.startX;
-                const dy = e.clientY - dragInfo.startY;
+                const handleMove = (e) => {
+                    if (!dragInfo) return;
+                    
+                    // Prevent scrolling on touch devices while dragging
+                    if (e.cancelable) e.preventDefault(); 
 
-                setWindows(prev => prev.map(w => {
-                    if (w.id !== dragInfo.id) return w;
-                    if (dragInfo.type === 'move') {
-                    return { ...w, x: dragInfo.initialLeft + dx, y: dragInfo.initialTop + dy };
-                    } else if (dragInfo.type === 'resize') {
-                    return { ...w, w: Math.max(200, dragInfo.initialW + dx), h: Math.max(150, dragInfo.initialH + dy) };
-                    }
-                    return w;
-                }));
+                    const clientX = e.type.startsWith('touch') ? e.touches[0].clientX : e.clientX;
+                    const clientY = e.type.startsWith('touch') ? e.touches[0].clientY : e.clientY;
+
+                    const dx = clientX - dragInfo.startX;
+                    const dy = clientY - dragInfo.startY;
+
+                    setWindows(prev => prev.map(w => {
+                        if (w.id !== dragInfo.id) return w;
+                        if (dragInfo.type === 'move') {
+                        return { ...w, x: dragInfo.initialLeft + dx, y: dragInfo.initialTop + dy };
+                        } else if (dragInfo.type === 'resize') {
+                        return { ...w, w: Math.max(200, dragInfo.initialW + dx), h: Math.max(150, dragInfo.initialH + dy) };
+                        }
+                        return w;
+                    }));
                 };
-                const handleMouseUp = () => setDragInfo(null);
+                
+                const handleEnd = () => setDragInfo(null);
+
                 if (dragInfo) {
-                window.addEventListener('mousemove', handleMouseMove);
-                window.addEventListener('mouseup', handleMouseUp);
+                    window.addEventListener('mousemove', handleMove);
+                    window.addEventListener('mouseup', handleEnd);
+                    window.addEventListener('touchmove', handleMove, { passive: false });
+                    window.addEventListener('touchend', handleEnd);
                 }
                 return () => {
-                window.removeEventListener('mousemove', handleMouseMove);
-                window.removeEventListener('mouseup', handleMouseUp);
+                    window.removeEventListener('mousemove', handleMove);
+                    window.removeEventListener('mouseup', handleEnd);
+                    window.removeEventListener('touchmove', handleMove);
+                    window.removeEventListener('touchend', handleEnd);
                 };
             }, [dragInfo]);
 
@@ -1040,7 +1074,7 @@
                         window={w} 
                         onClose={closeWindow}
                         onUpdate={updateWindowData}
-                        onMouseDown={handleMouseDown}
+                        onDragStart={handleDragStart}
                         onBringToFront={bringToFront}
                         topZIndex={topZIndex}
                         lang={lang}
