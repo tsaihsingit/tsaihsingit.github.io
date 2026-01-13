@@ -127,6 +127,7 @@
                 saved: "已儲存",
                 note_placeholder: "在此輸入內容...",
                 img_placeholder: "貼上圖片網址 或 點擊此處後按下 Ctrl+V 貼上剪貼簿圖片",
+                img_storage_info: "已用 {used} KB / 剩餘約 {remaining} KB (Local Storage)",
                 clock_digital: "數位",
                 clock_analog: "類比",
                 timer_start: "開始",
@@ -168,6 +169,7 @@
                 saved: "Saved",
                 note_placeholder: "Type here...",
                 img_placeholder: "Paste URL or Click here and Ctrl+V to paste image",
+                img_storage_info: "Used {used} KB / ~{remaining} KB left (Local Storage)",
                 clock_digital: "Digital",
                 clock_analog: "Analog",
                 timer_start: "Start",
@@ -279,6 +281,32 @@
 
         const ImageViewer = ({ data, onUpdate, globalProps }) => {
             const { lang } = globalProps;
+            const [storageStats, setStorageStats] = useState({ used: '0', remaining: '0' });
+
+            useEffect(() => {
+                // Calculate Local Storage Usage
+                const calculateStorage = () => {
+                    let total = 0;
+                    for (let key in localStorage) {
+                        if (localStorage.hasOwnProperty(key)) {
+                            // Estimate size: key length + value length (UTF-16 approx 2 bytes/char)
+                            total += (localStorage[key].length + key.length) * 2;
+                        }
+                    }
+                    // Approx 5MB limit
+                    const limit = 5 * 1024 * 1024;
+                    const remaining = Math.max(0, limit - total);
+                    setStorageStats({
+                        used: (total / 1024).toFixed(0),
+                        remaining: (remaining / 1024).toFixed(0)
+                    });
+                };
+                calculateStorage();
+                // Recalculate periodically just in case
+                const interval = setInterval(calculateStorage, 2000);
+                return () => clearInterval(interval);
+            }, [data.url]); // Re-calc when url changes
+
             const handlePaste = async (e) => {
                 const items = (e.clipboardData || e.originalEvent.clipboardData).items;
                 for (const item of items) {
@@ -291,6 +319,10 @@
                 }
                 }
             };
+
+            const infoText = TRANSLATIONS[lang].img_storage_info
+                .replace('{used}', storageStats.used)
+                .replace('{remaining}', storageStats.remaining);
 
             return (
                 <div 
@@ -312,17 +344,18 @@
                     </div>
                 ) : (
                     <div className="flex-1 flex flex-col items-center justify-center p-4 text-center border-2 border-dashed border-gray-600 m-2 rounded text-gray-400 hover:border-blue-500 hover:text-blue-400 transition cursor-pointer">
-                    <Clipboard size={32} className="mb-2" />
-                    <p className="text-sm">{TRANSLATIONS[lang].img_placeholder}</p>
-                    <input 
-                        type="text" 
-                        placeholder="https://..." 
-                        className="mt-4 w-full p-1 bg-gray-800 rounded border border-gray-700 text-xs"
-                        onChange={(e) => onUpdate({ url: e.target.value })}
-                        onKeyDown={(e) => e.stopPropagation()} 
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onTouchStart={(e) => e.stopPropagation()}
-                    />
+                        <Clipboard size={32} className="mb-2" />
+                        <p className="text-sm">{TRANSLATIONS[lang].img_placeholder}</p>
+                        <p className="text-[10px] mt-2 opacity-50 font-mono">{infoText}</p>
+                        <input 
+                            type="text" 
+                            placeholder="https://..." 
+                            className="mt-4 w-full p-1 bg-gray-800 rounded border border-gray-700 text-xs"
+                            onChange={(e) => onUpdate({ url: e.target.value })}
+                            onKeyDown={(e) => e.stopPropagation()} 
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onTouchStart={(e) => e.stopPropagation()}
+                        />
                     </div>
                 )}
                 </div>
@@ -966,7 +999,8 @@
                 type,
                 x: 50 + (nextId % 10) * 20,
                 y: 50 + (nextId % 10) * 20,
-                w: type === 'note' ? 250 : type === 'clock' ? 220 : 400,
+                // Changed clock width from 220 to 320 to fit digital numbers
+                w: type === 'note' ? 250 : type === 'clock' ? 320 : 400,
                 h: type === 'note' ? 300 : type === 'clock' ? 250 : 300,
                 z: topZIndex + 1,
                 data: initialData
