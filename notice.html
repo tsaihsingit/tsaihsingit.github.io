@@ -104,15 +104,15 @@
             justify-content: center;
             align-items: center;
             padding: 20px;
-            overflow: auto;
+            overflow: hidden; /* 防止出現捲軸 */
         }
 
         /* 紙張容器 */
         .paper {
             background-color: var(--paper-bg);
             width: 100%;
-            max-width: 1200px;
-            height: 90vh;
+            max-width: none;
+            height: 100%; /* 填滿 workspace 高度 */
             box-shadow: 0 4px 6px -1px var(--shadow-color);
             border: 1px solid var(--date-border-color); /* 使用通用邊框色 */
             position: relative;
