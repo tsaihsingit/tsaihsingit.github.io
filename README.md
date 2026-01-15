@@ -11,7 +11,10 @@
 
 ## License
 
-**注音字型**：BpmfZihiKaiStd-Regular 依 OTF 1.1 授權使用  
-詳見 [fonts/FONT-LICENSE.txt](fonts/FONT-LICENSE.txt)
+**注音字型**  
+- BpmfZihiKaiStd-Regular  
+- BpmfZihiOnly-R  
+
+以上字型依 OTF 1.1 授權使用，詳見 [fonts/FONT-LICENSE.txt](fonts/FONT-LICENSE.txt)。
 
 本專案僅將原 TTF 轉為 WOFF2 格式用於網頁，未修改字型內容。
