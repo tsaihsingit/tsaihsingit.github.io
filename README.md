@@ -8,3 +8,10 @@
 每個工具都有返回首頁工具箱的連結，位置不盡相同還請包涵，我也懶得手動修改。
 
 直接使用請開啟： [https://tsaihsingit.github.io/](https://tsaihsingit.github.io/)
+
+## License
+
+**注音字型**：BpmfZihiKaiStd-Regular 依 OTF 1.1 授權使用  
+詳見 [fonts/FONT-LICENSE.txt](fonts/FONT-LICENSE.txt)
+
+本專案僅將原 TTF 轉為 WOFF2 格式用於網頁，未修改字型內容。

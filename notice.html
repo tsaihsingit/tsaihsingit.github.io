@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>數位聯絡簿編輯器</title>
+    <!-- Tailwind CSS for UI controls -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Noto+Serif+TC:wght@400;700&display=swap');
+
+        /* 字嗨注音 WebFont 設定 */
+        @font-face {
+            font-family: "ZiHiBpmf";
+            src: url("https://gear.tsps.tp.edu.tw/fonts/BpmfZihiKaiStd-Regular.woff2") format("woff2");
+            font-display: swap;
+        }
+
+        /* 定義變數 (預設淺色主題) */
+        :root {
+            /* 顏色變數 */
+            --body-bg: #e5e7eb;
+            --control-bg: #ffffff;
+            --control-text: #1f2937;
+            --paper-bg: #fdfbf7;
+            --line-color: #2e8b57; /* 海綠色 */
+            --text-color: #000080; /* 深藍色 */
+            --date-box-bg: rgba(255, 255, 255, 0.5);
+            --date-label-color: #444444;
+            --date-val-color: #000000;
+            --date-border-color: #888888;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+
+            /* 設定變數 */
+            --font-size: 40px;
+            --line-height-ratio: 1.8;
+            --current-font: "DFKai-SB", "BiauKai", "标楷体", "KaiTi", "Noto Serif TC", serif;
+        }
+
+        /* 深色主題變數覆寫 */
+        [data-theme="dark"] {
+            --body-bg: #111827;
+            --control-bg: #1f2937;
+            --control-text: #f3f4f6;
+            --paper-bg: #2d3748; /* 深灰藍紙張 */
+            --line-color: #68d391; /* 亮綠色格線 */
+            --text-color: #e2e8f0; /* 淺灰白文字 */
+            --date-box-bg: rgba(0, 0, 0, 0.3);
+            --date-label-color: #a0aec0;
+            --date-val-color: #ffffff;
+            --date-border-color: #cbd5e0;
+            --shadow-color: rgba(0, 0, 0, 0.5);
+        }
+
+        body {
+            background-color: var(--body-bg);
+            color: var(--control-text);
+            font-family: "Noto Sans TC", sans-serif;
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        #controls {
+            background: var(--control-bg);
+            color: var(--control-text);
+            padding: 0.5rem 1rem;
+            box-shadow: 0 -2px 4px var(--shadow-color);
+            z-index: 50;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+            justify-content: space-between;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* 針對 Tailwind 的 select 和 input 做深色模式適配 */
+        [data-theme="dark"] #controls select,
+        [data-theme="dark"] #controls input[type="text"] {
+            background-color: #374151;
+            color: white;
+            border-color: #4b5563;
+        }
+        
+        [data-theme="dark"] #controls label {
+            color: #d1d5db;
+        }
+
+        #workspace {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            overflow: auto;
+        }
+
+        /* 紙張容器 */
+        .paper {
+            background-color: var(--paper-bg);
+            width: 100%;
+            max-width: 1200px;
+            height: 90vh;
+            box-shadow: 0 4px 6px -1px var(--shadow-color);
+            border: 1px solid var(--date-border-color); /* 使用通用邊框色 */
+            position: relative;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: row-reverse; /* 日期在右(起點) */
+            padding: 2rem;
+            overflow: hidden;
+            transition: background-color 0.3s;
+        }
+
+        /* 日期欄位 */
+        .date-column {
+            width: 80px;
+            height: 100%;
+            font-family: "DFKai-SB", "BiauKai", serif;
+            font-size: 24px;
+            color: var(--date-label-color);
+            border-left: 3px double var(--line-color);
+            padding-left: 10px;
+            margin-left: 10px;
+            display: flex;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        /* 主要編輯區塊容器 */
+        .main-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 行號尺標列 */
+        .line-ruler {
+            height: 30px;
+            display: flex;
+            flex-direction: row-reverse;
+            border-bottom: 1px solid var(--line-color);
+            margin-bottom: 5px;
+            color: var(--line-color);
+            font-size: 16px;
+            font-family: "Noto Sans TC", sans-serif;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .ruler-num {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-shrink: 0;
+            user-select: none;
+        }
+
+        /* 實際文字輸入區 */
+        #content-area {
+            font-family: var(--current-font);
+            font-size: var(--font-size);
+            line-height: var(--line-height-ratio);
+            color: var(--text-color);
+            
+            flex: 1;
+            height: 100%;
+            
+            /* 直書設定 */
+            writing-mode: vertical-rl;
+            text-orientation: upright;
+            
+            outline: none;
+            white-space: pre-wrap;
+            overflow: hidden;
+            
+            /* 讓文字垂直置中於行高內 */
+            padding-top: calc(var(--font-size) * 0.2);
+            padding-left: 0;
+            padding-right: 0;
+
+            /* 格線背景 */
+            background-image: repeating-linear-gradient(
+                to left,
+                var(--line-color) 0,
+                var(--line-color) 1px,
+                transparent 1px,
+                transparent calc(var(--font-size) * var(--line-height-ratio))
+            );
+            background-attachment: local;
+            background-position: right top;
+            transition: color 0.3s; /* 文字顏色過渡 */
+        }
+
+        #content-area div, #content-area p {
+            margin: 0;
+            padding: 0;
+        }
+
+        /* 日期內部元件樣式 */
+        .date-box {
+            border: 2px solid var(--line-color);
+            border-radius: 8px;
+            padding: 10px 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            background: var(--date-box-bg);
+            height: auto;
+        }
+        .date-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        .date-val {
+            font-weight: bold;
+            font-size: 32px;
+            color: var(--date-val-color);
+            border-bottom: 1px solid var(--date-border-color);
+            text-align: center;
+            min-width: 1.5em;
+        }
+        .num-mode {
+            writing-mode: horizontal-tb;
+            line-height: 1.2;
+        }
+        .text-mode {
+            writing-mode: vertical-rl;
+            text-orientation: upright;
+        }
+
+        /* 共用 Modal 樣式 */
+        .modal-overlay-style {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 100;
+            justify-content: center; align-items: center;
+        }
+        
+        /* 儲存狀態提示 */
+        #save-status {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.5s;
+            pointer-events: none;
+        }
+        #save-status.show {
+            opacity: 1;
+        }
+
+        @media print {
+            #controls { display: none; }
+            #save-status { display: none; } /* 列印時隱藏儲存提示 */
+            body { background: white; height: auto; display: block; color: black; }
+            #workspace { display: block; padding: 0; }
+            .paper { 
+                box-shadow: none; border: none; height: 100vh; max-width: none; padding: 0; 
+                background-color: white !important; /* 強制白底 */
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            #content-area { 
+                -webkit-print-color-adjust: exact; 
+                print-color-adjust: exact; 
+                color: #000080 !important; /* 強制列印為深藍色 */
+            }
+            /* 列印時強制還原格線顏色 */
+            :root {
+                --line-color: #2e8b57 !important;
+            }
+            .line-ruler { border-bottom: 1px solid #ccc; color: #888; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="save-status">已儲存</div>
+
+    <div id="workspace">
+        <div class="paper">
+            <!-- 右側：日期欄 -->
+            <div class="date-column">
+                <div class="date-box">
+                    <div class="date-item">
+                        <span>民<br>國</span>
+                        <div class="date-val num-mode" contenteditable="true" id="roc-year"></div>
+                        <span>年</span>
+                    </div>
+                    <div class="date-item">
+                        <div class="date-val num-mode" contenteditable="true" id="month"></div>
+                        <span>月</span>
+                    </div>
+                    <div class="date-item">
+                        <div class="date-val num-mode" contenteditable="true" id="day"></div>
+                        <span>日</span>
+                    </div>
+                    <div class="date-item">
+                        <br>
+                        <span>星<br>期</span>
+                        <div class="date-val text-mode" contenteditable="true" id="weekday"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 左側：主要編輯區 -->
+            <div class="main-column" id="main-column">
+                <div class="line-ruler" id="line-ruler"></div>
+                <div id="content-area" contenteditable="true">一、準備好繳交的作業。<br>二、安靜閱讀。</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 工具列 -->
+    <div id="controls" class="border-t border-gray-300">
+        <!-- 左下角：返回 + 主題切換 -->
+        <div class="flex items-center gap-2">
+            <a href="index.html" class="flex items-center gap-1 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white font-medium px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition no-underline">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                <span class="hidden sm:inline">返回</span>
+            </a>
+            
+            <button onclick="toggleTheme()" title="切換主題 (淺色/深色)" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition">
+                <span id="theme-icon">🌓</span>
+            </button>
+        </div>
+
+        <!-- 中間：主要控制項 -->
+        <div class="flex flex-wrap items-center justify-center gap-4 mx-auto">
+            <div class="flex items-center gap-2">
+                <label for="font-size" class="font-bold">字體大小:</label>
+                <input type="range" id="font-size" min="24" max="72" value="40" class="w-24 sm:w-32 accent-green-600">
+                <span id="font-size-val" class="text-sm font-mono w-8">40</span>px
+            </div>
+
+            <div class="flex items-center gap-2">
+                <label for="font-family" class="font-bold">字型:</label>
+                <select id="font-family" class="border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-green-500 max-w-[150px]">
+                    <option value="default">預設標楷體</option>
+                    <option value="zihi">字嗨/BpmfVS</option>
+                    <option value="sans">黑體</option>
+                </select>
+            </div>
+
+            <div class="flex items-center gap-2 border-l pl-2 border-gray-300 dark:border-gray-600">
+                <a href="https://buttaiwan.github.io/bpmfvs/" target="_blank" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded shadow transition flex items-center gap-2 no-underline text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                    <span>選字器</span>
+                </a>
+            </div>
+            
+            <button onclick="openConfirmModal()" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded shadow transition text-sm">
+                清空
+            </button>
+        </div>
+
+        <!-- 右下角：授權資訊 -->
+        <a href="fonts/FONT-LICENSE.txt" target="_blank" class="text-gray-500 hover:text-gray-800 dark:hover:text-gray-300 text-sm underline px-2">
+            授權資訊
+        </a>
+    </div>
+
+    <!-- 字嗨提示 Modal -->
+    <div id="modal-overlay" class="modal-overlay-style">
+        <div id="modal" style="background: white; padding: 2rem; border-radius: 0.5rem; max-width: 500px; text-align: center; color: black;">
+            <h3 class="text-xl font-bold mb-4 text-green-700">字嗨/BpmfVS 注音模式</h3>
+            <p class="text-gray-700 mb-4 text-left leading-relaxed">
+                您選擇了注音支援字型 (ZiHiBpmf)。<br><br>
+                1. 系統正在載入雲端字型。<br>
+                2. 若需輸入特殊破音字或修正聲調，<br>
+                   請使用下方的 <strong>「選字器」</strong> 連結。<br>
+            </p>
+            <button onclick="closeModal()" class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700">我知道了</button>
+        </div>
+    </div>
+
+    <!-- 清空確認 Modal -->
+    <div id="confirm-modal-overlay" class="modal-overlay-style">
+        <div style="background: white; padding: 2rem; border-radius: 0.5rem; max-width: 400px; text-align: center; color: black;">
+            <h3 class="text-xl font-bold mb-4 text-red-700">確定清空內容？</h3>
+            <p class="text-gray-700 mb-6">此動作無法復原，您確定要清空所有文字嗎？</p>
+            <div class="flex justify-center gap-4">
+                <button onclick="performClear()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded shadow transition">確定</button>
+                <button onclick="closeConfirmModal()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded shadow transition">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const root = document.documentElement;
+        const fontSizeInput = document.getElementById('font-size');
+        const fontSizeVal = document.getElementById('font-size-val');
+        const fontFamilySelect = document.getElementById('font-family');
+        const modalOverlay = document.getElementById('modal-overlay');
+        const confirmModalOverlay = document.getElementById('confirm-modal-overlay');
+        const contentArea = document.getElementById('content-area');
+        const lineRuler = document.getElementById('line-ruler');
+        const mainColumn = document.getElementById('main-column');
+        const saveStatus = document.getElementById('save-status');
+
+        const elYear = document.getElementById('roc-year');
+        const elMonth = document.getElementById('month');
+        const elDay = document.getElementById('day');
+        const elWeekday = document.getElementById('weekday');
+
+        const STORAGE_KEY = 'contactbook_data_v1';
+
+        // --- 主題切換邏輯 ---
+        function toggleTheme() {
+            const currentTheme = root.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            root.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) {
+                root.setAttribute('data-theme', savedTheme);
+            }
+        }
+
+        // --- 自動儲存與載入邏輯 ---
+        function saveData() {
+            const data = {
+                content: contentArea.innerHTML,
+                year: elYear.innerText,
+                month: elMonth.innerText,
+                day: elDay.innerText,
+                weekday: elWeekday.innerText,
+                fontSize: fontSizeInput.value,
+                fontFamily: fontFamilySelect.value
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            
+            // 顯示已儲存提示
+            saveStatus.classList.add('show');
+            setTimeout(() => {
+                saveStatus.classList.remove('show');
+            }, 1500);
+        }
+
+        function loadData() {
+            const savedData = localStorage.getItem(STORAGE_KEY);
+            if (savedData) {
+                try {
+                    const data = JSON.parse(savedData);
+                    // 恢復內容
+                    if (data.content) contentArea.innerHTML = data.content;
+                    if (data.year) elYear.innerText = data.year;
+                    if (data.month) elMonth.innerText = data.month;
+                    if (data.day) elDay.innerText = data.day;
+                    if (data.weekday) elWeekday.innerText = data.weekday;
+                    
+                    // 恢復設定
+                    if (data.fontSize) {
+                        fontSizeInput.value = data.fontSize;
+                        fontSizeVal.innerText = data.fontSize;
+                        root.style.setProperty('--font-size', data.fontSize + 'px');
+                    }
+                    if (data.fontFamily) {
+                        fontFamilySelect.value = data.fontFamily;
+                        // 觸發 change 事件以應用字體
+                        const event = new Event('change');
+                        fontFamilySelect.dispatchEvent(event);
+                    }
+                } catch (e) {
+                    console.error("載入資料失敗:", e);
+                }
+            } else {
+                // 若無存檔，則初始化日期
+                setDate();
+            }
+        }
+
+        // --- 行號尺標更新邏輯 ---
+        function updateRuler() {
+            const fontSize = parseInt(fontSizeInput.value);
+            // 改為動態讀取 CSS 變數，確保比例一致
+            const ratioStr = getComputedStyle(root).getPropertyValue('--line-height-ratio').trim();
+            const lineHeightRatio = parseFloat(ratioStr) || 1.8;
+            
+            const columnWidth = fontSize * lineHeightRatio;
+            const totalWidth = mainColumn.clientWidth;
+            
+            // 計算可容納的行數
+            const count = Math.ceil(totalWidth / columnWidth);
+            
+            let html = '';
+            for (let i = 1; i <= count; i++) {
+                html += `<div class="ruler-num" style="width: ${columnWidth}px">${i}</div>`;
+            }
+            lineRuler.innerHTML = html;
+        }
+
+        window.addEventListener('resize', updateRuler);
+
+        function setDate() {
+            const now = new Date();
+            elYear.innerText = now.getFullYear() - 1911;
+            elMonth.innerText = now.getMonth() + 1;
+            elDay.innerText = now.getDate();
+            elWeekday.innerText = ['日', '一', '二', '三', '四', '五', '六'][now.getDay()];
+        }
+
+        // --- 監聽器 ---
+        
+        // 字體大小：使用 requestAnimationFrame 確保滑動時流暢更新版面
+        fontSizeInput.addEventListener('input', (e) => {
+            const size = e.target.value;
+            fontSizeVal.innerText = size;
+            
+            requestAnimationFrame(() => {
+                root.style.setProperty('--font-size', size + 'px');
+                updateRuler(); // 調整大小時立即重排尺標
+                
+                // 強制瀏覽器重新計算版面 (Reflow)，解決 vertical-rl 模式下文字靠左的問題
+                contentArea.style.display = 'none';
+                void contentArea.offsetHeight; // 讀取屬性強制 reflow
+                contentArea.style.display = '';
+            });
+            
+            saveData(); 
+        });
+
+        fontFamilySelect.addEventListener('change', (e) => {
+            const selected = e.target.value;
+            let fontStack = '';
+            // 防止遞迴觸發 (如果是 loadData 呼叫的)
+            if (e.isTrusted === false && selected === 'zihi') {
+                 // 程式觸發的，不顯示 Modal
+            } else if (selected === 'zihi') {
+                 showModal();
+            }
+
+            if (selected === 'zihi') {
+                fontStack = '"ZiHiBpmf", "ZihiChinyinKai", "ZihiChinyin", "BpmfVS", "GenRyuMin", "DFKai-SB", "BiauKai", "KaiTi", serif';
+            } else if (selected === 'sans') {
+                fontStack = '"Noto Sans TC", "Microsoft JhengHei", sans-serif';
+            } else {
+                fontStack = '"DFKai-SB", "BiauKai", "标楷体", "KaiTi", "Noto Serif TC", serif';
+            }
+            root.style.setProperty('--current-font', fontStack);
+            saveData(); 
+        });
+
+        // 監聽內容變更以觸發自動儲存
+        const inputs = [contentArea, elYear, elMonth, elDay, elWeekday];
+        inputs.forEach(el => {
+            el.addEventListener('input', () => {
+                saveData();
+            });
+        });
+
+        // Modal Functions
+        function showModal() { modalOverlay.style.display = 'flex'; }
+        function closeModal() { modalOverlay.style.display = 'none'; contentArea.focus(); }
+
+        // 清空確認功能
+        function openConfirmModal() { confirmModalOverlay.style.display = 'flex'; }
+        function closeConfirmModal() { confirmModalOverlay.style.display = 'none'; }
+        function performClear() {
+            contentArea.innerText = '';
+            setDate(); 
+            saveData(); 
+            closeConfirmModal();
+            contentArea.focus();
+        }
+
+        contentArea.addEventListener('paste', function(e) {
+            e.preventDefault();
+            var text = (e.originalEvent || e).clipboardData.getData('text/plain');
+            document.execCommand('insertText', false, text);
+        });
+
+        // 初始化
+        loadTheme();
+        loadData(); // 載入資料 (內部會設定字體大小變數)
+        
+        // 確保載入資料後，尺標依據正確的字體大小繪製
+        requestAnimationFrame(() => {
+            updateRuler();
+        });
+
+        // 點擊背景關閉 Modal
+        modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
+        confirmModalOverlay.addEventListener('click', (e) => { if (e.target === confirmModalOverlay) closeConfirmModal(); });
+
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/gh/ButTaiwan/bpmfvs@main/js/bpmflib.js" 
+            onload="window.bpmfLoaded=true;" 
+            onerror="window.bpmfLoaded=false;"></script>
+</body>
+</html>
