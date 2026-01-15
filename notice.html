@@ -10,10 +10,17 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Noto+Serif+TC:wght@400;700&display=swap');
 
-        /* 字嗨注音 WebFont 設定 */
+        /* 字嗨注音 WebFont 設定 (國字加注音) */
         @font-face {
             font-family: "ZiHiBpmf";
             src: url("fonts/BpmfZihiKaiStd-Regular.woff2") format("woff2");
+            font-display: swap;
+        }
+
+        /* 新增：字嗨注音 WebFont 設定 (只有注音) */
+        @font-face {
+            font-family: "ZiHiBpmfOnly";
+            src: url("fonts/BpmfZihiOnly-R.woff2") format("woff2");
             font-display: swap;
         }
 
@@ -357,7 +364,8 @@
                 <label for="font-family" class="font-bold">字型:</label>
                 <select id="font-family" class="border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-green-500 max-w-[150px]">
                     <option value="default">預設標楷體</option>
-                    <option value="zihi">字嗨/BpmfVS</option>
+                    <option value="zihi">國字加注音</option>
+                    <option value="zihionly">只有注音</option>
                     <option value="sans">黑體</option>
                 </select>
             </div>
@@ -387,7 +395,7 @@
         <div id="modal" style="background: white; padding: 2rem; border-radius: 0.5rem; max-width: 500px; text-align: center; color: black;">
             <h3 class="text-xl font-bold mb-4 text-green-700">字嗨/BpmfVS 注音模式</h3>
             <p class="text-gray-700 mb-4 text-left leading-relaxed">
-                您選擇了注音支援字型 (ZiHiBpmf)。<br><br>
+                您選擇了注音支援字型 (ZiHiBpmf / ZiHiBpmfOnly)。<br><br>
                 1. 系統正在載入雲端字型。<br>
                 2. 若需輸入特殊破音字或修正聲調，<br>
                    請使用下方的 <strong>「選字器」</strong> 連結。<br>
@@ -549,14 +557,17 @@
             const selected = e.target.value;
             let fontStack = '';
             // 防止遞迴觸發 (如果是 loadData 呼叫的)
-            if (e.isTrusted === false && selected === 'zihi') {
+            if (e.isTrusted === false && (selected === 'zihi' || selected === 'zihionly')) {
                  // 程式觸發的，不顯示 Modal
-            } else if (selected === 'zihi') {
+            } else if (selected === 'zihi' || selected === 'zihionly') {
                  showModal();
             }
 
             if (selected === 'zihi') {
                 fontStack = '"ZiHiBpmf", "ZihiChinyinKai", "ZihiChinyin", "BpmfVS", "GenRyuMin", "DFKai-SB", "BiauKai", "KaiTi", serif';
+            } else if (selected === 'zihionly') {
+                // "ZiHiBpmfOnly" for external/cloud, "ZihiBpmfOnly" for potential local
+                fontStack = '"ZiHiBpmfOnly", "ZihiBpmfOnly", "BpmfVS", serif';
             } else if (selected === 'sans') {
                 fontStack = '"Noto Sans TC", "Microsoft JhengHei", sans-serif';
             } else {

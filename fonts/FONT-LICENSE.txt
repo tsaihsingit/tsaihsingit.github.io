@@ -1,0 +1,17 @@
+字嗨注音楷體標準版 (BpmfZihiKaiStd-Regular) 授權說明
+
+檔案：
+- BpmfZihiKaiStd-Regular.ttf、BpmfZihiOnly-R.ttf (原始檔案)
+- BpmfZihiKaiStd-Regular.woff2、BpmfZihiOnly-R.woff2 (WOFF2 轉換格式，由本專案轉換)
+
+授權條款：
+本注音字型依 OTF 1.1 授權發行，詳細內容請參閱原檔案附帶說明。
+自由使用，可作商業發行，但必須明確保留原作者著作權資訊。
+
+原作者：
+字嗨社群 (Zi-Hi Project)
+來源：https://zi-hi.com 或原下載來源
+
+本專案衍生版本：
+- 僅進行 TTF → WOFF2 格式轉換，用於網頁 webfont
+- 未修改字形、字元或設計內容
