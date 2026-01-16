@@ -41,7 +41,8 @@
 
             /* 設定變數 */
             --font-size: 40px;
-            --line-height-ratio: 1.8; /* 預設 1.8，會隨字體改變 */
+            --line-height-ratio: 1.8; /* 行高/格線寬度固定為 1.8 */
+            --letter-spacing: 0em;    /* 文字垂直間距，預設為 0 */
             --current-font: "DFKai-SB", "BiauKai", "标楷体", "KaiTi", "Noto Serif TC", serif;
         }
 
@@ -176,6 +177,7 @@
             font-family: var(--current-font);
             font-size: var(--font-size);
             line-height: var(--line-height-ratio);
+            letter-spacing: var(--letter-spacing); /* 套用字元間距 */
             color: var(--text-color);
             
             flex: 1;
@@ -545,6 +547,45 @@
                 contentArea.style.display = '';
             });
             
+            saveData(); 
+        });
+
+        fontFamilySelect.addEventListener('change', (e) => {
+            const selected = e.target.value;
+            let fontStack = '';
+            let letterSpacing = '0em'; // 預設 letter-spacing
+
+            // 防止遞迴觸發 (如果是 loadData 呼叫的)
+            if (e.isTrusted === false && (selected === 'zihi' || selected === 'zihionly')) {
+                 // 程式觸發的，不顯示 Modal
+            } else if (selected === 'zihi' || selected === 'zihionly') {
+                 showModal();
+            }
+
+            if (selected === 'zihi') {
+                fontStack = '"ZiHiBpmf", "ZihiChinyinKai", "ZihiChinyin", "BpmfVS", "GenRyuMin", "DFKai-SB", "BiauKai", "KaiTi", serif';
+                letterSpacing = '0.2em'; // 國字加注音：letter-spacing 0.2em
+            } else if (selected === 'zihionly') {
+                fontStack = '"ZiHiBpmfOnly", "ZihiBpmfOnly", "BpmfVS", serif';
+                letterSpacing = '0.4em'; // 只有注音：letter-spacing 0.4em
+            } else if (selected === 'sans') {
+                fontStack = '"Noto Sans TC", "Microsoft JhengHei", sans-serif';
+            } else {
+                fontStack = '"DFKai-SB", "BiauKai", "标楷体", "KaiTi", "Noto Serif TC", serif';
+            }
+            
+            // 設定字體與字元間距
+            root.style.setProperty('--current-font', fontStack);
+            root.style.setProperty('--letter-spacing', letterSpacing);
+
+            // 強制重繪與更新尺標
+            requestAnimationFrame(() => {
+                updateRuler();
+                contentArea.style.display = 'none';
+                void contentArea.offsetHeight;
+                contentArea.style.display = '';
+            });
+
             saveData(); 
         });
 
