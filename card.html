@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>自訂抽卡模擬器</title>
+    <style>
+        /* --- 基礎設定 --- */
+        :root {
+            --ur-color: #ffd700; /* 金 */
+            --ssr-color: #a020f0; /* 紫 */
+            --sr-color: #1e90ff; /* 藍 */
+            --r-color: #00ff00;  /* 綠 */
+            --n-color: #ffffff;  /* 白 */
+            --bg-color: #0f0f12;
+            --card-bg: #1a1a2e;
+            --text-color: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #000000; /* 背景改為純黑，凸顯中間區域 */
+            margin: 0;
+            padding: 0;
+            color: var(--text-color);
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden; 
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* 讓中間區塊居中 */
+        }
+
+        /* --- 主容器 (70% 寬度) --- */
+        .main-container {
+            width: 70%;
+            min-width: 360px; /* 避免在手機上太窄 */
+            height: 100%;
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            box-shadow: 0 0 50px rgba(255, 255, 255, 0.05); /* 增加一點邊緣光暈 */
+            border-left: 1px solid #222;
+            border-right: 1px solid #222;
+        }
+
+        /* --- 頂部標題與設定鈕 --- */
+        .header {
+            padding: 10px 20px;
+            background: linear-gradient(180deg, rgba(20,20,30,0.95) 0%, rgba(26,26,46,0) 100%);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+            flex-shrink: 0;
+            height: 50px;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            /* 在小螢幕時隱藏標題，避免擠壓按鈕 */
+            white-space: nowrap;
+        }
+        
+        @media (max-width: 400px) {
+            .header h1 {
+                display: none;
+            }
+            .header {
+                justify-content: space-between;
+            }
+        }
+
+        .btn-settings, .btn-back {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            text-decoration: none; /* 連結樣式修正 */
+            display: flex;
+            align-items: center;
+            transition: background 0.2s;
+        }
+        
+        .btn-settings:hover, .btn-back:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        /* --- 抽卡結果顯示區 --- */
+        .result-area {
+            flex: 1;
+            padding: 10px;
+            overflow: hidden;
+            display: grid;
+            align-content: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+        }
+
+        /* 模式 A: 多張卡片 (4-10張) - 5欄排列 */
+        .result-area.grid-mode {
+            grid-template-columns: repeat(5, 1fr);
+            grid-auto-rows: 1fr;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        /* 手機直向時自動調整 grid */
+        @media (max-width: 600px) {
+            .result-area.grid-mode {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* 模式 B: 少張卡片 (1-3張) - 重點展示 */
+        .result-area.focus-mode {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        /* 佔位文字 */
+        .placeholder-text {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #6c6c80;
+            opacity: 0.7;
+            text-align: center;
+            line-height: 1.6;
+        }
+
+        /* --- 卡片樣式 --- */
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 10px;
+            aspect-ratio: 3/4;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            opacity: 0;
+            transform: scale(0.5);
+            border: 2px solid #333; 
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            transition: transform 0.2s;
+            width: 100%;
+        }
+        
+        /* Focus Mode 下的卡片特規 */
+        .result-area.focus-mode .card {
+            height: 70vh;
+            width: auto;
+            max-width: 100%; /* 避免超出容器 */
+        }
+
+        /* 卡片進場動畫 */
+        .card.reveal {
+            animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        .card:hover {
+            transform: scale(1.05) !important;
+            z-index: 5;
+        }
+
+        /* 卡片內部佈局 */
+        .card-inner {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* --- 稀有度樣式與特效 --- */
+        .card.n { border-color: var(--n-color); box-shadow: 0 0 5px var(--n-color); }
+        .card.n .card-rarity { color: var(--n-color); }
+
+        .card.r { border-color: var(--r-color); box-shadow: 0 0 8px var(--r-color); }
+        .card.r .card-rarity { color: var(--r-color); }
+
+        .card.sr { border-color: var(--sr-color); box-shadow: 0 0 10px var(--sr-color); }
+        .card.sr .card-rarity { color: var(--sr-color); }
+
+        .card.ssr { 
+            border-color: var(--ssr-color); 
+            box-shadow: 0 0 15px var(--ssr-color), inset 0 0 10px rgba(160, 32, 240, 0.5);
+            animation: pulse-purple 2s infinite alternate;
+        }
+        .card.ssr.reveal { animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards, pulse-purple 2s infinite alternate; }
+        .card.ssr .card-rarity { color: var(--ssr-color); text-shadow: 0 0 5px var(--ssr-color); }
+
+        .card.ur { 
+            border-color: var(--ur-color); 
+            box-shadow: 0 0 20px var(--ur-color), inset 0 0 20px rgba(255, 215, 0, 0.5);
+            background: linear-gradient(135deg, #2a2a00 0%, #1a1a2e 100%);
+        }
+        .card.ur::before {
+            content: '';
+            position: absolute;
+            top: -50%; left: -50%; width: 200%; height: 200%;
+            background: conic-gradient(transparent, rgba(255, 215, 0, 0.3), transparent 30%);
+            animation: rotate-shine 4s linear infinite;
+            z-index: 1;
+        }
+        .card.ur .card-rarity { color: var(--ur-color); text-shadow: 0 0 10px var(--ur-color); font-size: 2.2rem; }
+
+        /* --- 卡片內容元件 --- */
+        .card-rarity {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            font-size: 1.2rem;
+            font-weight: 900;
+            font-family: 'Arial Black', sans-serif;
+            z-index: 3;
+            text-shadow: 0 2px 2px rgba(0,0,0,0.8);
+        }
+        
+        .result-area.focus-mode .card-rarity {
+            font-size: 2rem;
+            top: 15px; left: 15px;
+        }
+
+        .card-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            top: 0; left: 0;
+        }
+
+        .seat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            line-height: 1;
+            margin-bottom: 5px;
+            background: linear-gradient(to bottom, #fff, #aaa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 4px 8px rgba(0,0,0,0.5);
+        }
+        
+        .result-area.focus-mode .seat-number {
+            font-size: 8rem;
+        }
+        
+        .card.ur .seat-number {
+            background: linear-gradient(to bottom, #ffd700, #ff8c00);
+            -webkit-background-clip: text;
+        }
+
+        .student-name {
+            font-size: 1.4rem;
+            font-weight: 700;
+            background: rgba(0,0,0,0.7);
+            padding: 4px 12px;
+            border-radius: 6px;
+            z-index: 3;
+            max-width: 95%;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .result-area.focus-mode .student-name {
+            font-size: 2.5rem;
+            padding: 10px 25px;
+        }
+        
+        .card.has-image .student-name {
+            position: absolute;
+            bottom: 25px; /* 姓名位置上移，避免被擋住 */
+        }
+        
+        .result-area.focus-mode .card.has-image .student-name {
+            bottom: 40px;
+        }
+
+        /* --- 底部控制區 --- */
+        .controls {
+            padding: 15px 20px 25px 20px;
+            background: rgba(23, 23, 35, 0.95);
+            border-top: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 20;
+            flex-shrink: 0;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: #ccc;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            margin: 0 15px;
+            accent-color: var(--ssr-color);
+        }
+
+        .btn-summon {
+            background: linear-gradient(90deg, #ff416c, #ff4b2b);
+            border: none;
+            padding: 15px;
+            border-radius: 50px;
+            color: white;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 75, 43, 0.4);
+            transition: transform 0.1s;
+        }
+        .btn-summon:active { transform: scale(0.98); }
+        .btn-summon:disabled { background: #555; cursor: not-allowed; box-shadow: none; }
+
+        /* --- 設定視窗 (Modal) --- */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: #252535;
+            padding: 25px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            border: 1px solid #444;
+            display: flex;
+            flex-direction: column;
+            max-height: 90vh;
+        }
+        .modal h2 { margin-top: 0; color: white; text-align: center; font-size: 1.2rem;}
+        
+        .form-group { margin-bottom: 15px; flex: 1; display: flex; flex-direction: column; overflow: hidden;}
+        .form-group label { display: block; color: #aaa; margin-bottom: 5px; font-size: 0.9rem;}
+        .form-group .hint { font-size: 0.8rem; color: #666; margin-bottom: 5px; }
+        
+        textarea { 
+            width: 100%; 
+            flex: 1;
+            min-height: 200px;
+            padding: 10px; 
+            border-radius: 5px; 
+            border: 1px solid #444; 
+            background: #1a1a20; 
+            color: white;
+            box-sizing: border-box;
+            font-family: monospace;
+            white-space: pre;
+            resize: none;
+            overflow-y: auto;
+        }
+
+        /* checkbox container style */
+        .checkbox-group {
+            flex: 0 0 auto;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            color: #ddd;
+            cursor: pointer;
+        }
+        .checkbox-group input {
+            width: auto;
+            margin-right: 10px;
+            transform: scale(1.2);
+            accent-color: var(--sr-color);
+        }
+        
+        .modal-buttons { display: flex; gap: 10px; margin-top: 20px; flex-shrink: 0;}
+        .btn-save { flex: 1; background: var(--sr-color); border: none; padding: 10px; border-radius: 5px; color: white; font-weight: bold; cursor: pointer;}
+        .btn-cancel { flex: 1; background: #444; border: none; padding: 10px; border-radius: 5px; color: white; cursor: pointer;}
+        .btn-reset { flex: 1; background: #d9534f; border: none; padding: 10px; border-radius: 5px; color: white; cursor: pointer; font-weight: bold;}
+
+        /* --- 動畫 Keyframes --- */
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.5) translateY(50px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes rotate-shine {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        @keyframes pulse-purple {
+            0% { box-shadow: 0 0 15px var(--ssr-color); }
+            100% { box-shadow: 0 0 25px var(--ssr-color), 0 0 10px rgba(255,255,255,0.5); }
+        }
+
+        .flash-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: white; opacity: 0; pointer-events: none;
+            z-index: 90; transition: opacity 0.3s;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        <div class="header">
+            <a href="index.html" class="btn-back">⬅️ 教室工具箱</a>
+            <h1>命運抽選</h1>
+            <button class="btn-settings" onclick="openSettings()">⚙️ 設定名單</button>
+        </div>
+
+        <div class="result-area" id="resultArea">
+            <div class="placeholder-text">
+                <h2>準備抽選</h2>
+                <p>名單已預設為 1~42 號<br>可直接開始或修改設定</p>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <div class="input-group">
+                <span>抽選數量</span>
+                <input type="range" id="drawCountSlider" min="1" max="10" value="1">
+                <span id="drawCountText" style="width: 30px; text-align: center; font-weight: bold; font-size: 1.2rem;">1</span>
+            </div>
+            <button class="btn-summon" id="summonBtn" onclick="summon()">開始抽選</button>
+        </div>
+    </div>
+    
+    <div class="flash-overlay" id="flashOverlay"></div>
+
+    <!-- 設定視窗 -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <h2>編輯名單</h2>
+
+            <label class="checkbox-group">
+                <input type="checkbox" id="checkShowPhotos" checked>
+                顯示大頭照 (若名單有設定)
+            </label>
+
+            <div class="form-group">
+                <label>輸入格式：座號 [Tab] 姓名 [Tab] 圖片網址</label>
+                <div class="hint">可直接從 Excel 複製貼上，一行一位學生。</div>
+                <textarea id="inputData" placeholder="例如：
+01	王小明
+02	李小華	https://example.com/photo.jpg"></textarea>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-reset" onclick="resetSettings()">恢復預設</button>
+                <button class="btn-cancel" onclick="closeSettings()">取消</button>
+                <button class="btn-save" onclick="saveSettings()">儲存名單</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 設定與狀態 ---
+        let studentPool = []; 
+        let showPhotos = true; // 預設顯示照片
+        const STORAGE_KEY = 'gacha_student_pool'; // LocalStorage Key for Data
+        const STORAGE_KEY_SETTINGS = 'gacha_app_settings'; // LocalStorage Key for Settings
+
+        const PROBABILITIES = {
+            UR: 0.02, SSR: 0.08, SR: 0.20, R: 0.30, N: 0.40
+        };
+
+        // 預設圖片庫
+        const DEFAULT_PHOTOS = [
+            "https://i.meee.com.tw/6jlCmkE.png",
+            "https://i.meee.com.tw/CyBbfld.png",
+            "https://i.meee.com.tw/AFFdUSi.png",
+            "https://i.meee.com.tw/EO3z1AC.png",
+            "https://i.meee.com.tw/hNLexSj.png",
+            "https://i.meee.com.tw/JroR9Xd.png",
+            "https://i.meee.com.tw/rDU3pXm.png",
+            "https://i.meee.com.tw/IzVJpJA.png"
+        ];
+
+        // --- DOM 元素 ---
+        const slider = document.getElementById('drawCountSlider');
+        const countText = document.getElementById('drawCountText');
+        const resultArea = document.getElementById('resultArea');
+        const flashOverlay = document.getElementById('flashOverlay');
+        const summonBtn = document.getElementById('summonBtn');
+        const modal = document.getElementById('settingsModal');
+        const inputData = document.getElementById('inputData');
+        const checkShowPhotos = document.getElementById('checkShowPhotos');
+
+        // --- 初始化 ---
+        window.onload = function() {
+            // 載入資料
+            if (!loadFromStorage()) {
+                initDefaultPool();
+            }
+            // 載入設定
+            loadSettings();
+        };
+
+        slider.addEventListener('input', (e) => countText.innerText = e.target.value);
+
+        function initDefaultPool() {
+            studentPool = [];
+            for (let i = 1; i <= 42; i++) {
+                // 補零: 1 -> 01
+                const seat = String(i).padStart(2, '0');
+                // 隨機選一張圖
+                const randomPhoto = DEFAULT_PHOTOS[Math.floor(Math.random() * DEFAULT_PHOTOS.length)];
+                
+                studentPool.push({
+                    seat: seat,
+                    name: '同學', // 預設名稱
+                    photo: randomPhoto
+                });
+            }
+        }
+        
+        // 從 LocalStorage 讀取名單
+        function loadFromStorage() {
+            const savedData = localStorage.getItem(STORAGE_KEY);
+            if (savedData) {
+                try {
+                    studentPool = JSON.parse(savedData);
+                    return true;
+                } catch (e) {
+                    console.error("讀取儲存資料失敗:", e);
+                    return false;
+                }
+            }
+            return false;
+        }
+
+        // 從 LocalStorage 讀取設定
+        function loadSettings() {
+            const savedSettings = localStorage.getItem(STORAGE_KEY_SETTINGS);
+            if (savedSettings) {
+                try {
+                    const settings = JSON.parse(savedSettings);
+                    if (settings.hasOwnProperty('showPhotos')) {
+                        showPhotos = settings.showPhotos;
+                    }
+                } catch (e) {
+                    console.error("讀取設定失敗:", e);
+                }
+            }
+            // 更新 UI 狀態
+            checkShowPhotos.checked = showPhotos;
+        }
+
+        // --- 設定功能 ---
+        function openSettings() {
+            // 將目前的 pool 轉換回字串顯示
+            const textContent = studentPool.map(s => {
+                let line = `${s.seat}\t${s.name}`;
+                if(s.photo) line += `\t${s.photo}`;
+                return line;
+            }).join('\n');
+            
+            inputData.value = textContent;
+            checkShowPhotos.checked = showPhotos; // 確保開啟時同步狀態
+            modal.style.display = 'flex';
+        }
+
+        function closeSettings() {
+            modal.style.display = 'none';
+        }
+
+        // 恢復預設
+        function resetSettings() {
+            if(confirm("確定要恢復預設名單嗎？\n這將會清除目前的設定並重新隨機分配照片。")) {
+                initDefaultPool(); // 重新生成並隨機分配照片
+                showPhotos = true; // 恢復預設顯示照片
+                localStorage.removeItem(STORAGE_KEY); // 清除名單紀錄
+                localStorage.removeItem(STORAGE_KEY_SETTINGS); // 清除設定紀錄
+                
+                closeSettings();
+                updatePlaceholder("名單已恢復預設並重新隨機分配照片");
+            }
+        }
+
+        function saveSettings() {
+            const rawText = inputData.value.trim();
+            const newShowPhotos = checkShowPhotos.checked;
+            
+            // 如果清空並儲存 -> 恢復預設
+            if (!rawText) {
+                if(confirm("未輸入資料，是否清除儲存並恢復預設 1~42 號？")) {
+                    resetSettings(); // 直接呼叫 reset
+                    return;
+                }
+                return;
+            }
+
+            const lines = rawText.split('\n');
+            const newPool = [];
+
+            lines.forEach(line => {
+                const parts = line.split('\t'); 
+                const seat = parts[0]?.trim();
+                const name = parts[1]?.trim();
+                const photo = parts[2]?.trim() || "";
+
+                if (seat && name) {
+                    newPool.push({ seat, name, photo });
+                }
+            });
+
+            if (newPool.length === 0) {
+                alert("無法解析資料，請確認格式。");
+                return;
+            }
+
+            // 更新狀態
+            studentPool = newPool;
+            showPhotos = newShowPhotos;
+            
+            // 儲存到 LocalStorage
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(studentPool));
+                localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify({ showPhotos: showPhotos }));
+            } catch (e) {
+                alert("瀏覽器儲存空間不足或停用，無法儲存設定，但本次使用依然有效。");
+            }
+
+            closeSettings();
+            updatePlaceholder(`設定已更新，共 ${studentPool.length} 人`);
+        }
+
+        function updatePlaceholder(msg) {
+            resultArea.innerHTML = `
+                <div class="placeholder-text">
+                    <h2>${msg}</h2>
+                </div>`;
+            resultArea.className = "result-area"; // 重置樣式
+        }
+
+        // --- 抽卡邏輯 ---
+        function summon() {
+            if(studentPool.length === 0) initDefaultPool();
+
+            const count = parseInt(slider.value);
+            summonBtn.disabled = true;
+            summonBtn.innerText = "抽選中...";
+
+            // 閃光特效
+            flashOverlay.style.opacity = 1;
+            setTimeout(() => { flashOverlay.style.opacity = 0; }, 300);
+
+            // 清空並準備生成
+            setTimeout(() => {
+                resultArea.innerHTML = '';
+                
+                // 根據數量切換 CSS Class
+                if (count <= 3) {
+                    resultArea.className = "result-area focus-mode";
+                } else {
+                    resultArea.className = "result-area grid-mode";
+                }
+                
+                const results = [];
+                for(let i=0; i<count; i++) {
+                    results.push({
+                        rarity: getRarity(),
+                        student: getRandomStudent()
+                    });
+                }
+
+                // 逐張顯示
+                results.forEach((item, index) => {
+                    setTimeout(() => {
+                        createCard(item.rarity, item.student);
+                        
+                        // 確保最後一張出現時滾動到底部 (僅在 grid-mode 需要)
+                        if(count > 3) {
+                            resultArea.scrollTop = resultArea.scrollHeight;
+                        }
+
+                        if (index === results.length - 1) {
+                            setTimeout(() => {
+                                summonBtn.disabled = false;
+                                summonBtn.innerText = "再次抽選";
+                            }, 500);
+                        }
+                    }, index * 150);
+                });
+            }, 100);
+        }
+
+        function getRarity() {
+            const rand = Math.random();
+            if (rand < PROBABILITIES.UR) return 'UR';
+            if (rand < PROBABILITIES.UR + PROBABILITIES.SSR) return 'SSR';
+            if (rand < PROBABILITIES.UR + PROBABILITIES.SSR + PROBABILITIES.SR) return 'SR';
+            if (rand < PROBABILITIES.UR + PROBABILITIES.SSR + PROBABILITIES.SR + PROBABILITIES.R) return 'R';
+            return 'N';
+        }
+
+        function getRandomStudent() {
+            const index = Math.floor(Math.random() * studentPool.length);
+            return studentPool[index];
+        }
+
+        function createCard(rarity, student) {
+            const card = document.createElement('div');
+            card.className = `card ${rarity.toLowerCase()} reveal`;
+            
+            // 檢查：只有當「設定開啟」且「學生有照片」時才視為有圖模式
+            const hasPhotoToDisplay = showPhotos && student.photo;
+
+            if (hasPhotoToDisplay) {
+                card.classList.add('has-image');
+            }
+
+            // 組合顯示名稱 (座號 + 姓名)
+            const displayName = `${student.seat} ${student.name}`;
+
+            let contentHTML = '';
+            
+            if (hasPhotoToDisplay) {
+                contentHTML = `
+                    <img src="${student.photo}" class="card-image" onerror="this.style.display='none'; this.parentNode.innerHTML='<div class=\\'seat-number\\'>${student.seat}</div><div class=\\'student-name\\'>圖片讀取失敗</div>'">
+                    <div class="student-name">${displayName}</div>
+                `;
+            } else {
+                contentHTML = `
+                    <div class="seat-number">${student.seat}</div>
+                    <div class="student-name">${displayName}</div>
+                `;
+            }
+
+            card.innerHTML = `
+                <div class="card-rarity">${rarity}</div>
+                <div class="card-inner">
+                    ${contentHTML}
+                </div>
+            `;
+
+            resultArea.appendChild(card);
+        }
+    </script>
+</body>
+</html>
