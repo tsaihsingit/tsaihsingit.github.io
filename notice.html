@@ -3,33 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>數位聯絡簿編輯器</title>
+    <title>數位聯絡簿・小麥注音留言板</title>
     <!-- Tailwind CSS for UI controls -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Noto+Serif+TC:wght@400;700&display=swap');
+    <script>
+        // 強制讓 Tailwind 的 dark:* 依循網頁的 [data-theme="dark"]，避免與作業系統深色模式衝突導致黑底黑字
+        if (typeof tailwind !== 'undefined') {
+            tailwind.config = {
+                darkMode: ['selector', '[data-theme="dark"]']
+            };
+        }
+    </script>
+    <!-- 字嗨與台灣教育字型 WebFont CSS (McBopomofoWeb 官方推薦) -->
+    <link rel="stylesheet" href="https://oikasu1.github.io/fonts/twfonts.css" />
+    <!-- Simple Keyboard CSS (小麥注音螢幕小鍵盤) -->
+    <link rel="stylesheet" href="https://unpkg.com/simple-keyboard@latest/build/css/index.css" />
 
-        /* 字嗨注音 WebFont 設定 (國字加注音) */
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@400;700&display=swap');
+
+        /* 字嗨注音 WebFont 設定 (國字加注音 - 優先載入專案內 fonts/ 目錄，並備援雲端路徑) */
         @font-face {
             font-family: "ZiHiBpmf";
-            src: url("fonts/BpmfZihiKaiStd-Regular.woff2") format("woff2");
+            src: local("BpmfZihiKaiStd-Regular"),
+                 url("fonts/BpmfZihiKaiStd-Regular.woff2") format("woff2"),
+                 url("https://tsaihsingit.github.io/fonts/BpmfZihiKaiStd-Regular.woff2") format("woff2"),
+                 url("https://oikasu1.github.io/fonts/BpmfZihiKaiStd-Regular.woff2") format("woff2");
             font-display: swap;
         }
 
-        /* 新增：字嗨注音 WebFont 設定 (只有注音) */
+        /* 字嗨注音 WebFont 設定 (只有注音) */
         @font-face {
             font-family: "ZiHiBpmfOnly";
-            src: url("fonts/BpmfZihiOnly-R.woff2") format("woff2");
+            src: local("BpmfZihiOnly-R"),
+                 url("fonts/BpmfZihiOnly-R.woff2") format("woff2"),
+                 url("https://tsaihsingit.github.io/fonts/BpmfZihiOnly-R.woff2") format("woff2"),
+                 url("https://oikasu1.github.io/fonts/BpmfZihiOnly-R.woff2") format("woff2");
             font-display: swap;
         }
 
         /* 定義變數 (預設淺色主題) */
         :root {
-            /* 顏色變數 */
             --body-bg: #e5e7eb;
             --control-bg: #ffffff;
-            --control-text: #1f2937;
+            --control-text: #111827;
             --paper-bg: #fdfbf7;
             --line-color: #2e8b57; /* 海綠色 */
             --text-color: #000080; /* 深藍色 */
@@ -38,27 +55,45 @@
             --date-val-color: #000000;
             --date-border-color: #888888;
             --shadow-color: rgba(0, 0, 0, 0.1);
+            --panel-bg: #f8fafc;
+            --panel-border: #cbd5e1;
+            --card-bg: #ffffff;
+            --card-text: #111827;
+            --card-subtext: #374151;
+            --card-accent: #5b21b6;
+            --input-bg: #ffffff;
+            --input-text: #111827;
+            --input-border: #94a3b8;
 
             /* 設定變數 */
             --font-size: 40px;
-            --line-height-ratio: 1.8; /* 行高/格線寬度固定為 1.8 */
-            --letter-spacing: 0em;    /* 文字垂直間距，預設為 0 */
-            --current-font: "DFKai-SB", "BiauKai", "标楷体", "KaiTi", "Noto Serif TC", serif;
+            --line-height-ratio: 1.8;
+            --letter-spacing: 0.2em;
+            --current-font: "ZiHiBpmf", "BpmfZihiKaiStd-Regular", "DFKai-SB", "BiauKai", "KaiTi", "Noto Serif TC", serif;
         }
 
         /* 深色主題變數覆寫 */
         [data-theme="dark"] {
-            --body-bg: #111827;
-            --control-bg: #1f2937;
-            --control-text: #f3f4f6;
-            --paper-bg: #2d3748; /* 深灰藍紙張 */
-            --line-color: #68d391; /* 亮綠色格線 */
-            --text-color: #e2e8f0; /* 淺灰白文字 */
+            --body-bg: #0f172a;
+            --control-bg: #1e293b;
+            --control-text: #f8fafc;
+            --paper-bg: #2d3748;
+            --line-color: #68d391;
+            --text-color: #e2e8f0;
             --date-box-bg: rgba(0, 0, 0, 0.3);
             --date-label-color: #a0aec0;
             --date-val-color: #ffffff;
             --date-border-color: #cbd5e0;
             --shadow-color: rgba(0, 0, 0, 0.5);
+            --panel-bg: #0f172a;
+            --panel-border: #334155;
+            --card-bg: #1e293b;
+            --card-text: #f8fafc;
+            --card-subtext: #cbd5e1;
+            --card-accent: #ddd6fe;
+            --input-bg: #334155;
+            --input-text: #ffffff;
+            --input-border: #64748b;
         }
 
         body {
@@ -73,30 +108,65 @@
             transition: background-color 0.3s, color 0.3s;
         }
 
+        /* 頂部本機留言板導覽列 */
+        #topbar {
+            background: var(--control-bg);
+            color: var(--control-text);
+            padding: 0.4rem 1rem;
+            border-bottom: 1px solid var(--panel-border);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 45;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
         #controls {
             background: var(--control-bg);
             color: var(--control-text);
             padding: 0.5rem 1rem;
             box-shadow: 0 -2px 4px var(--shadow-color);
-            z-index: 50;
+            z-index: 45;
             display: flex;
             flex-wrap: wrap;
-            gap: 1rem;
+            gap: 0.75rem;
             align-items: center;
             justify-content: space-between;
             transition: background-color 0.3s, color 0.3s;
         }
 
-        /* 針對 Tailwind 的 select 和 input 做深色模式適配 */
-        [data-theme="dark"] #controls select,
-        [data-theme="dark"] #controls input[type="text"] {
-            background-color: #374151;
-            color: white;
-            border-color: #4b5563;
+        /* 確保所有輸入框與下拉選單在淺色與深色模式皆有高對比度，不受作業系統暗色模式干擾 */
+        #controls select,
+        #controls input[type="text"],
+        #topbar select,
+        #topbar input[type="text"],
+        #mcbopomofo-panel select,
+        #mcbopomofo-panel input[type="text"] {
+            background-color: var(--input-bg);
+            color: var(--input-text);
+            border: 1px solid var(--input-border);
         }
-        
-        [data-theme="dark"] #controls label {
-            color: #d1d5db;
+
+        #controls select option,
+        #mcbopomofo-panel select option {
+            background-color: var(--input-bg);
+            color: var(--input-text);
+        }
+
+        [data-theme="dark"] #controls label,
+        [data-theme="dark"] #topbar label {
+            color: #e2e8f0;
+        }
+
+        /* 主工作區：支援右側並排小麥注音面板與左側留言列表抽屜 */
+        #main-stage {
+            flex: 1;
+            display: flex;
+            position: relative;
+            overflow: hidden;
+            min-height: 0;
         }
 
         #workspace {
@@ -104,53 +174,88 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 20px;
-            overflow: hidden; /* 防止出現捲軸 */
+            padding: 16px;
+            overflow: hidden;
+            min-width: 0;
         }
 
-        /* 紙張容器 */
+        /* 紙張容器 (直式預設維持原本 row-reverse：右側日期欄、左側主編輯區) */
         .paper {
             background-color: var(--paper-bg);
             width: 100%;
             max-width: none;
-            height: 100%; /* 填滿 workspace 高度 */
+            height: 100%;
             box-shadow: 0 4px 6px -1px var(--shadow-color);
-            border: 1px solid var(--date-border-color); /* 使用通用邊框色 */
+            border: 1px solid var(--date-border-color);
             position: relative;
             box-sizing: border-box;
             display: flex;
-            flex-direction: row-reverse; /* 日期在右(起點) */
-            padding: 2rem;
+            flex-direction: row-reverse;
+            padding: 1.5rem 2rem;
             overflow: hidden;
             transition: background-color 0.3s;
         }
 
-        /* 日期欄位 */
+        /* 橫式版面時：紙張改為上下排列，日期列置於最上方 */
+        .paper.layout-horizontal {
+            flex-direction: column;
+            padding: 1.25rem 1.75rem;
+        }
+
+        /* 日期區塊：直式維持原本右側直向欄 */
         .date-column {
             width: 80px;
             height: 100%;
-            font-family: "DFKai-SB", "BiauKai", serif;
+            font-family: "DFKai-SB", "BiauKai", "KaiTi", "Noto Serif TC", serif;
             font-size: 24px;
             color: var(--date-label-color);
             border-left: 3px double var(--line-color);
-            padding-left: 10px;
-            margin-left: 10px;
+            padding-left: 1rem;
+            margin-left: 1rem;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding-top: 0.5rem;
             flex-shrink: 0;
         }
 
-        /* 主要編輯區塊容器 */
+        /* 橫式版面時：日期區塊改為版面最上方的橫式列 */
+        .paper.layout-horizontal .date-column {
+            width: 100%;
+            height: auto;
+            font-size: 22px;
+            border-left: none;
+            border-bottom: 3px double var(--line-color);
+            padding-left: 0;
+            margin-left: 0;
+            padding-top: 0;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        /* 主要編輯區塊容器 (直式預設為 column：尺標在上、內容在下) */
         .main-column {
             flex: 1;
             display: flex;
             flex-direction: column;
+            min-height: 0;
             height: 100%;
             overflow: hidden;
             position: relative;
         }
 
-        /* 行號尺標列 */
+        /* 橫式版面時：尺標在左、內容在右 */
+        .paper.layout-horizontal .main-column {
+            flex-direction: row;
+        }
+
+        /* 行號尺標列 (直式：上方由右至左) */
         .line-ruler {
             height: 30px;
             display: flex;
@@ -164,6 +269,17 @@
             flex-shrink: 0;
         }
 
+        /* 行號尺標列 (橫式：左側由上至下) */
+        .paper.layout-horizontal .line-ruler {
+            width: 38px;
+            height: 100%;
+            flex-direction: column;
+            border-bottom: none;
+            border-right: 1px solid var(--line-color);
+            margin-bottom: 0;
+            margin-right: 10px;
+        }
+
         .ruler-num {
             display: flex;
             justify-content: center;
@@ -172,31 +288,24 @@
             user-select: none;
         }
 
-        /* 實際文字輸入區 */
+        /* 實際文字輸入區 (預設直式版面) */
         #content-area {
             font-family: var(--current-font);
             font-size: var(--font-size);
             line-height: var(--line-height-ratio);
-            letter-spacing: var(--letter-spacing); /* 套用字元間距 */
+            letter-spacing: var(--letter-spacing);
             color: var(--text-color);
-            
             flex: 1;
             height: 100%;
-            
-            /* 直書設定 */
             writing-mode: vertical-rl;
             text-orientation: upright;
-            
             outline: none;
             white-space: pre-wrap;
-            overflow: hidden;
-            
-            /* 讓文字垂直置中於行高內 */
+            overflow-x: auto;
+            overflow-y: hidden;
             padding-top: calc(var(--font-size) * 0.2);
             padding-left: 0;
             padding-right: 0;
-
-            /* 格線背景：改用 linear-gradient + background-size 提升穩定性 */
             background-image: linear-gradient(
                 to left,
                 var(--line-color) 1px,
@@ -205,7 +314,25 @@
             background-size: calc(var(--font-size) * var(--line-height-ratio)) 100%;
             background-attachment: local;
             background-position: right top;
-            transition: color 0.3s; /* 文字顏色過渡 */
+            transition: color 0.3s;
+        }
+
+        /* 橫式版面文字輸入區 */
+        .paper.layout-horizontal #content-area {
+            writing-mode: horizontal-tb;
+            text-orientation: mixed;
+            overflow-x: hidden;
+            overflow-y: auto;
+            padding-top: 0;
+            padding-left: calc(var(--font-size) * 0.15);
+            padding-right: calc(var(--font-size) * 0.15);
+            background-image: linear-gradient(
+                to bottom,
+                transparent calc(100% - 1px),
+                var(--line-color) calc(100% - 1px)
+            );
+            background-size: 100% calc(var(--font-size) * var(--line-height-ratio));
+            background-position: left top;
         }
 
         #content-area div, #content-area p {
@@ -213,39 +340,434 @@
             padding: 0;
         }
 
-        /* 日期內部元件樣式 */
+        /* 日期內部元件樣式：直式維持原本狀態 */
         .date-box {
             border: 2px solid var(--line-color);
             border-radius: 8px;
-            padding: 10px 4px;
+            padding: 15px 5px;
+            height: 95%;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 10px;
+            justify-content: space-around;
+            width: 60px;
             background: var(--date-box-bg);
-            height: auto;
         }
         .date-item {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 4px;
+            gap: 5px;
         }
         .date-val {
             font-weight: bold;
-            font-size: 32px;
+            font-size: 28px;
             color: var(--date-val-color);
-            border-bottom: 1px solid var(--date-border-color);
+            border-bottom: 1px solid transparent;
             text-align: center;
             min-width: 1.5em;
-        }
-        .num-mode {
+            padding: 2px 0;
+            outline: none;
             writing-mode: horizontal-tb;
             line-height: 1.2;
         }
-        .text-mode {
+        .date-val:focus {
+            border-bottom: 1px dashed var(--line-color);
+            background-color: rgba(128, 128, 128, 0.1);
+        }
+        .date-val.text-mode {
             writing-mode: vertical-rl;
             text-orientation: upright;
+            min-height: 1.5em;
+            min-width: auto;
+            padding: 4px 0;
+        }
+        .label-horizontal {
+            display: none;
+        }
+        .time-box {
+            display: none;
+            border: 2px solid var(--line-color);
+            border-radius: 8px;
+            padding: 6px 14px;
+            align-items: center;
+            gap: 6px;
+            background: var(--date-box-bg);
+            font-size: 20px;
+            color: var(--date-label-color);
+        }
+
+        /* 橫式版面時：日期改為橫排置頂，並顯示現在時間 */
+        .paper.layout-horizontal .date-box {
+            width: auto;
+            height: auto;
+            padding: 6px 14px;
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 10px;
+        }
+        .paper.layout-horizontal .date-item {
+            display: inline-flex;
+            flex-direction: row;
+            align-items: baseline;
+            gap: 4px;
+        }
+        .paper.layout-horizontal .date-val,
+        .paper.layout-horizontal .date-val.text-mode {
+            writing-mode: horizontal-tb;
+            font-size: 26px;
+            border-bottom: 1.5px solid var(--date-border-color);
+            min-height: auto;
+            min-width: 1.6em;
+            padding: 0 4px;
+        }
+        .paper.layout-horizontal .label-vertical,
+        .paper.layout-horizontal .vertical-only-br {
+            display: none;
+        }
+        .paper.layout-horizontal .label-horizontal {
+            display: inline;
+        }
+        .paper.layout-horizontal .time-box {
+            display: inline-flex;
+        }
+        #live-clock {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--date-val-color);
+            letter-spacing: 0.05em;
+        }
+
+        /* 小麥網頁注音輸入法 側邊/彈出整合面板 */
+        #mcbopomofo-panel {
+            width: 500px;
+            max-width: 100vw;
+            height: 100%;
+            background: var(--panel-bg);
+            color: var(--card-text);
+            border-left: 2px solid var(--panel-border);
+            display: none;
+            flex-direction: column;
+            z-index: 40;
+            box-shadow: -4px 0 15px var(--shadow-color);
+            overflow-y: auto;
+            transition: width 0.25s ease;
+        }
+
+        #mcbopomofo-panel.open {
+            display: flex;
+        }
+
+        /* 小麥注音設定與狀態區塊：強制高對比度，解決文字與背景太近的問題 */
+        .ime-card {
+            background-color: var(--card-bg) !important;
+            color: var(--card-text) !important;
+            border: 1.5px solid var(--panel-border) !important;
+            border-radius: 0.5rem;
+        }
+
+        .ime-card summary,
+        .ime-card .ime-accent-title {
+            color: var(--card-accent) !important;
+            font-weight: 700;
+        }
+
+        .ime-card label,
+        .ime-card span,
+        .ime-card p {
+            color: var(--card-text);
+        }
+
+        .ime-card .ime-subtext {
+            color: var(--card-subtext) !important;
+        }
+
+        /* 小麥注音組字區與候選字視窗樣式 */
+        #ime-edit-container {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        #ime-text-area {
+            width: 100%;
+            min-height: 120px;
+            padding: 0.75rem;
+            border: 2px solid #7c3aed;
+            border-radius: 0.5rem;
+            background-color: var(--input-bg) !important;
+            color: var(--input-text) !important;
+            font-size: 28px;
+            line-height: 1.5;
+            resize: vertical;
+            outline: none;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+
+        #ime-text-area::placeholder {
+            color: var(--card-subtext);
+            opacity: 0.75;
+            font-size: 16px;
+        }
+
+        #ime-text-area:focus {
+            border-color: #6d28d9;
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.25);
+        }
+
+        /* 固定顯示的即時組字與選字工具列 */
+        #ime-composing-bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            min-height: 44px;
+            padding: 6px 10px;
+            background: #fef3c7;
+            border: 1.5px solid #f59e0b;
+            border-radius: 8px;
+            color: #111827;
+        }
+
+        [data-theme="dark"] #ime-composing-bar {
+            background: #312e81;
+            border-color: #818cf8;
+            color: #f8fafc;
+        }
+
+        #composing_buffer {
+            font-size: 22px;
+            font-weight: 600;
+            line-height: 1.4;
+            min-height: 30px;
+            display: flex;
+            align-items: center;
+        }
+
+        #composing_buffer p {
+            margin: 0;
+            padding: 0;
+        }
+
+        #ime-function {
+            position: relative;
+            z-index: 60;
+            pointer-events: auto;
+            display: none;
+        }
+
+        #ime-function.active {
+            display: block;
+        }
+
+        #candidates {
+            padding: 6px 10px;
+            background: #ffffff;
+            border: 2px solid #6d28d9;
+            border-radius: 8px;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.22);
+            color: #111827;
+            margin-top: 4px;
+        }
+
+        [data-theme="dark"] #candidates {
+            background: #1e293b;
+            border-color: #a78bfa;
+            color: #f8fafc;
+        }
+
+        #candidates table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        #candidates tr {
+            cursor: pointer;
+            border-bottom: 1px solid rgba(156, 163, 175, 0.25);
+        }
+
+        #candidates tr:hover {
+            background: #ede9fe;
+        }
+
+        [data-theme="dark"] #candidates tr:hover {
+            background: #312e81;
+        }
+
+        .highlighted_candidate {
+            background: #ddd6fe !important;
+            color: #111827 !important;
+            font-weight: 700;
+        }
+
+        .keyCap {
+            padding: 4px 10px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #6d28d9;
+            font-family: monospace;
+            width: 36px;
+        }
+
+        [data-theme="dark"] .keyCap {
+            color: #c4b5fd;
+        }
+
+        .candidate {
+            padding: 4px 10px 4px 4px;
+            font-size: 26px;
+            font-family: "ZiHiBpmf", "BpmfZihiKaiStd-Regular", serif;
+        }
+
+        .reading-option-btn {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 58px;
+            padding: 4px 8px;
+            border-radius: 8px;
+            border: 2px solid #c4b5fd;
+            background: #ffffff;
+            color: #111827;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+
+        .reading-option-btn:hover {
+            border-color: #7c3aed;
+            background: #ede9fe;
+            transform: translateY(-1px);
+        }
+
+        [data-theme="dark"] .reading-option-btn {
+            background: #0f172a;
+            border-color: #4c1d95;
+            color: #f8fafc;
+        }
+
+        [data-theme="dark"] .reading-option-btn:hover {
+            background: #312e81;
+            border-color: #a78bfa;
+        }
+
+        .reading-option-char {
+            font-family: "BpmfZihiKaiStd-Regular", "ZiHiBpmf", serif;
+            font-size: 30px;
+            line-height: 1.25;
+            font-weight: normal;
+        }
+
+        .reading-option-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: #5b21b6;
+            margin-top: 2px;
+        }
+
+        [data-theme="dark"] .reading-option-label {
+            color: #ddd6fe;
+        }
+
+        .page_info {
+            font-size: 12px;
+            color: #6b7280;
+            text-align: right;
+            padding-top: 4px;
+        }
+
+        #tooltip {
+            padding: 6px 10px;
+            background: #374151;
+            color: #ffffff;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        .cursor {
+            color: #dc2626;
+            font-weight: bold;
+            animation: blink 0.9s step-end infinite;
+        }
+
+        [data-theme="dark"] .cursor {
+            color: #f87171;
+        }
+
+        .marking {
+            text-decoration: underline;
+            background: #fde68a;
+            color: #111827;
+            padding: 0 2px;
+            border-radius: 3px;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+        /* Simple-keyboard 客製化調整 */
+        .simple-keyboard {
+            margin-top: 6px;
+            padding: 6px;
+            background: #cbd5e1 !important;
+            border-radius: 8px;
+            color: #111827 !important;
+        }
+        .simple-keyboard .hg-button {
+            background: #ffffff !important;
+            color: #111827 !important;
+            border-bottom: 2px solid #94a3b8 !important;
+            font-weight: 700 !important;
+            font-size: 15px !important;
+            height: 40px !important;
+        }
+        .simple-keyboard .hg-button:hover {
+            background: #f3e8ff !important;
+        }
+        [data-theme="dark"] .simple-keyboard {
+            background: #334155 !important;
+            color: #f8fafc !important;
+        }
+        [data-theme="dark"] .simple-keyboard .hg-button {
+            background: #1e293b !important;
+            color: #f8fafc !important;
+            border-color: #475569 !important;
+        }
+        [data-theme="dark"] .simple-keyboard .hg-button:hover {
+            background: #312e81 !important;
+        }
+        .hg-button-active {
+            background: #7c3aed !important;
+            color: #ffffff !important;
+        }
+
+        /* 留言紀錄側邊抽屜 */
+        #history-drawer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 340px;
+            max-width: 90vw;
+            height: 100%;
+            background: var(--control-bg);
+            border-right: 1px solid var(--panel-border);
+            box-shadow: 4px 0 15px var(--shadow-color);
+            z-index: 55;
+            transform: translateX(-100%);
+            transition: transform 0.25s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #history-drawer.open {
+            transform: translateX(0);
         }
 
         /* 共用 Modal 樣式 */
@@ -256,42 +778,50 @@
             background: rgba(0,0,0,0.5); z-index: 100;
             justify-content: center; align-items: center;
         }
-        
+
         /* 儲存狀態提示 */
         #save-status {
             position: fixed;
-            bottom: 80px;
+            bottom: 70px;
             right: 20px;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(17, 24, 39, 0.88);
             color: white;
             padding: 8px 16px;
             border-radius: 20px;
             font-size: 14px;
             opacity: 0;
-            transition: opacity 0.5s;
+            transition: opacity 0.4s;
             pointer-events: none;
+            z-index: 90;
         }
         #save-status.show {
             opacity: 1;
         }
 
+        @media (max-width: 900px) {
+            #mcbopomofo-panel {
+                position: absolute;
+                right: 0;
+                top: 0;
+                width: 95vw;
+            }
+        }
+
         @media print {
-            #controls { display: none; }
-            #save-status { display: none; } /* 列印時隱藏儲存提示 */
+            #topbar, #controls, #mcbopomofo-panel, #history-drawer, #save-status { display: none !important; }
             body { background: white; height: auto; display: block; color: black; }
-            #workspace { display: block; padding: 0; }
-            .paper { 
-                box-shadow: none; border: none; height: 100vh; max-width: none; padding: 0; 
-                background-color: white !important; /* 強制白底 */
+            #main-stage, #workspace { display: block; padding: 0; height: 100vh; }
+            .paper {
+                box-shadow: none; border: none; height: 100vh; max-width: none; padding: 0;
+                background-color: white !important;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
-            #content-area { 
-                -webkit-print-color-adjust: exact; 
-                print-color-adjust: exact; 
-                color: #000080 !important; /* 強制列印為深藍色 */
+            #content-area {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                color: #000080 !important;
             }
-            /* 列印時強制還原格線顏色 */
             :root {
                 --line-color: #2e8b57 !important;
             }
@@ -301,94 +831,389 @@
 </head>
 <body>
 
-    <div id="save-status">已儲存</div>
+    <div id="save-status">已自動儲存</div>
 
-    <div id="workspace">
-        <div class="paper">
-            <!-- 右側：日期欄 -->
-            <div class="date-column">
-                <div class="date-box">
-                    <div class="date-item">
-                        <span>民<br>國</span>
-                        <div class="date-val num-mode" contenteditable="true" id="roc-year"></div>
-                        <span>年</span>
-                    </div>
-                    <div class="date-item">
-                        <div class="date-val num-mode" contenteditable="true" id="month"></div>
-                        <span>月</span>
-                    </div>
-                    <div class="date-item">
-                        <div class="date-val num-mode" contenteditable="true" id="day"></div>
-                        <span>日</span>
-                    </div>
-                    <div class="date-item">
-                        <br>
-                        <span>星<br>期</span>
-                        <div class="date-val text-mode" contenteditable="true" id="weekday"></div>
-                    </div>
-                </div>
+    <!-- 頂部：本機 LocalStorage 留言紀錄控制列 -->
+    <div id="topbar">
+        <div class="flex items-center gap-2 flex-wrap">
+            <button onclick="toggleHistoryDrawer()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded shadow-sm transition flex items-center gap-1.5 text-sm font-medium">
+                <span>📜 留言紀錄</span>
+                <span id="msg-count-badge" class="bg-emerald-800 text-white text-xs px-1.5 py-0.5 rounded-full">0</span>
+            </button>
+
+            <div class="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded border border-gray-300 dark:border-gray-600">
+                <button onclick="navigateMessage(-1)" id="btn-prev-msg" title="上一筆紀錄" class="px-2 py-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-40 text-sm">◀</button>
+                <span id="current-msg-indicator" class="text-xs font-medium px-2 min-w-[110px] text-center">載入中...</span>
+                <button onclick="navigateMessage(1)" id="btn-next-msg" title="下一筆紀錄" class="px-2 py-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-40 text-sm">▶</button>
             </div>
 
-            <!-- 左側：主要編輯區 -->
-            <div class="main-column" id="main-column">
-                <div class="line-ruler" id="line-ruler"></div>
-                <div id="content-area" contenteditable="true">一、準備好繳交的作業。<br>二、安靜閱讀。</div>
+            <button onclick="prepareNewMessage()" class="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded shadow-sm transition text-sm">
+                ➕ 開新聯絡簿
+            </button>
+        </div>
+
+        <!-- 標題/留言者與本機儲存按鈕 -->
+        <div class="flex items-center gap-2 flex-wrap">
+            <div class="flex items-center gap-1.5">
+                <label for="msg-author" class="text-sm font-bold whitespace-nowrap">標題/留言者:</label>
+                <input type="text" id="msg-author" placeholder="例如：今日聯絡事項 / 王老師" value="今日聯絡事項"
+                       class="border border-gray-300 rounded px-2.5 py-1 text-sm w-44 focus:outline-none focus:ring-2 focus:ring-emerald-500">
             </div>
+
+            <button onclick="saveAsNewToLocal()" id="btn-add-local" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded shadow transition text-sm font-medium flex items-center gap-1">
+                <span>💾 新增為紀錄</span>
+            </button>
+
+            <button onclick="updateCurrentInLocal()" id="btn-update-local" class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded shadow transition text-sm font-medium hidden items-center gap-1">
+                <span>📝 更新此筆紀錄</span>
+            </button>
+
+            <span id="backend-mode-badge" class="text-xs px-2 py-1 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200 font-medium">
+                💾 自動儲存於瀏覽器 (LocalStorage)
+            </span>
         </div>
     </div>
 
-    <!-- 工具列 -->
+    <!-- 中間主要舞台：左側歷史抽屜 + 中央聯絡簿紙張 + 右側小麥注音輸入法面板 -->
+    <div id="main-stage">
+
+        <!-- 左側：LocalStorage 歷史留言紀錄抽屜 -->
+        <aside id="history-drawer">
+            <div class="p-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-emerald-700 text-white">
+                <div class="font-bold flex items-center gap-2">
+                    <span>📜 本機留言紀錄</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="toggleHistoryDrawer()" class="text-lg leading-none px-1.5 hover:bg-emerald-800 rounded">✕</button>
+                </div>
+            </div>
+            <div id="history-list" class="flex-1 overflow-y-auto p-3 space-y-2.5">
+                <p class="text-sm text-gray-500 text-center py-8">正在讀取留言紀錄...</p>
+            </div>
+        </aside>
+
+        <!-- 中央：聯絡簿紙張 -->
+        <div id="workspace">
+            <div class="paper" id="paper-board">
+                <!-- 日期區塊：直式時維持右側直向欄；橫式時改為最上方橫排並顯示現在時間 -->
+                <div class="date-column">
+                    <div class="date-box">
+                        <div class="date-item">
+                            <span class="label-vertical">民<br>國</span>
+                            <span class="label-horizontal">民國</span>
+                            <div class="date-val num-mode" contenteditable="true" id="roc-year"></div>
+                            <span>年</span>
+                        </div>
+                        <div class="date-item">
+                            <div class="date-val num-mode" contenteditable="true" id="month"></div>
+                            <span>月</span>
+                        </div>
+                        <div class="date-item">
+                            <div class="date-val num-mode" contenteditable="true" id="day"></div>
+                            <span>日</span>
+                        </div>
+                        <div class="date-item">
+                            <br class="vertical-only-br">
+                            <span class="label-vertical">星<br>期</span>
+                            <span class="label-horizontal ml-2">星期</span>
+                            <div class="date-val text-mode" contenteditable="true" id="weekday"></div>
+                        </div>
+                    </div>
+                    <div class="time-box">
+                        <span>🕒 現在時間：</span>
+                        <span id="live-clock" class="font-mono">--:--:--</span>
+                    </div>
+                </div>
+
+                <!-- 主要編輯區 -->
+                <div class="main-column" id="main-column">
+                    <div class="line-ruler" id="line-ruler"></div>
+                    <div id="content-area" contenteditable="true">一、準備好繳交的作業。<br>二、安靜閱讀。</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右側：內嵌小麥網頁注音輸入法 (McBopomofoWeb) 面板 -->
+        <aside id="mcbopomofo-panel">
+            <!-- 面板標題列 -->
+            <div class="p-3 bg-purple-700 text-white flex items-center justify-between sticky top-0 z-20">
+                <div class="flex items-center gap-2">
+                    <span class="font-bold text-base">🌾 小麥網頁注音輸入法</span>
+                    <span id="ime-loading-badge" class="text-xs bg-amber-400 text-black px-2 py-0.5 rounded-full font-semibold">載入詞庫中...</span>
+                </div>
+                <button onclick="toggleImePanel()" class="text-white hover:bg-purple-800 px-2 py-0.5 rounded text-lg leading-none">✕</button>
+            </div>
+
+            <div class="p-3 space-y-3 flex-1 flex flex-col">
+                <!-- 狀態列與快速開關 (高對比度卡片) -->
+                <div class="ime-card flex flex-wrap items-center justify-between gap-2 p-2.5 shadow-sm">
+                    <div class="flex items-center gap-2">
+                        <button type="button" id="ime-status-btn" onclick="window.mcbopomofoApp && window.mcbopomofoApp.toggleAlphabetMode()"
+                                class="bg-purple-600 hover:bg-purple-700 text-white font-bold px-2.5 py-1 rounded text-sm shadow-sm">
+                            【中文】
+                        </button>
+                        <span class="text-xs ime-subtext font-medium">(按 Shift 或點此切換中/英)</span>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <label class="flex items-center gap-1.5 text-sm font-bold cursor-pointer"
+                               title="開啟後，打字時會自動在字元後插入字嗨注音字型專屬的 Unicode IVS 異體字選擇符，正確顯示破音字讀音！">
+                            <input type="checkbox" id="bopomofo_font_annotation_support_enabled" checked class="w-4 h-4 accent-purple-600">
+                            <span class="ime-accent-title">注音字體破音字支援 (IVS)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 系統輸入法衝突警告 -->
+                <div id="ime_warning" class="hidden bg-amber-100 border-2 border-amber-500 text-amber-950 px-3 py-2 rounded text-xs font-bold">
+                    ⚠️ 偵測到電腦系統輸入法介入！請按 Shift 或 Win+Space 將電腦輸入法切換為「英數 (ENG)」模式，即可直接用鍵盤打小麥注音。
+                </div>
+
+                <!-- 小麥注音打字輸入框 + 即時組字工具列與候選字視窗 -->
+                <div id="ime-edit-container">
+                    <textarea id="ime-text-area" placeholder="請將電腦切為英數(ENG)，直接按鍵盤或點下方螢幕小鍵盤打注音..." rows="3" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false"></textarea>
+
+                    <!-- 固定顯示的即時組字狀態與選字按鈕列 -->
+                    <div id="ime-composing-bar">
+                        <div class="flex items-center gap-2 flex-1 min-w-0">
+                            <span class="text-xs font-bold px-1.5 py-0.5 rounded bg-amber-500 text-white shrink-0">組字區</span>
+                            <div id="composing_buffer" class="truncate">
+                                <span class="text-sm opacity-75">請按鍵盤或點下方小鍵盤輸入注音...</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <button type="button" onclick="window.mcbopomofoApp && window.mcbopomofoApp.triggerCandidateSelection()"
+                                    title="開啟同音字與破音字選單 (Space)"
+                                    class="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold px-2 py-1 rounded shadow-sm">
+                                🔍 選字 (Space)
+                            </button>
+                            <button type="button" onclick="window.mcbopomofoApp && window.mcbopomofoApp.commitComposing()"
+                                    title="將組字區文字正式寫入輸入框 (Enter)"
+                                    class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-2 py-1 rounded shadow-sm">
+                                ↵ 完成組字 (Enter)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 候選字選單與提示氣泡 -->
+                    <div id="ime-function">
+                        <div id="candidates"></div>
+                        <div id="tooltip"></div>
+                    </div>
+                </div>
+
+                <!-- 送入聯絡簿操作按鈕列 -->
+                <div class="grid grid-cols-3 gap-2">
+                    <button type="button" onclick="sendImeTextToBoard('append')"
+                            class="bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-2 rounded font-bold text-sm shadow transition flex items-center justify-center gap-1">
+                        <span>➕ 送入聯絡簿</span>
+                    </button>
+                    <button type="button" onclick="sendImeTextToBoard('replace')"
+                            class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-2 rounded font-bold text-sm shadow transition flex items-center justify-center gap-1">
+                        <span>🔄 取代聯絡簿</span>
+                    </button>
+                    <button type="button" onclick="clearImeTextArea()"
+                            class="bg-gray-600 hover:bg-gray-700 text-white py-2 px-2 rounded font-medium text-sm shadow transition">
+                        🗑️ 清空輸入框
+                    </button>
+                </div>
+
+                <!-- 螢幕注音小鍵盤開關與容器 -->
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs font-bold">⌨️ 螢幕虛擬注音鍵盤（支援滑鼠/觸控直接點擊打字）</span>
+                        <button type="button" onclick="toggleScreenKeyboard()" id="btn-toggle-vk" class="text-xs font-bold text-purple-700 underline">
+                            隱藏小鍵盤
+                        </button>
+                    </div>
+                    <div id="keyboard-wrapper">
+                        <div class="simple-keyboard" id="keyboard"></div>
+                    </div>
+                </div>
+
+                <!-- 小麥注音設定與注音字體說明 (高對比度卡片，預設展開方便調整與檢視) -->
+                <details class="ime-card p-3 text-sm shadow-sm" open>
+                    <summary class="cursor-pointer text-base select-none">⚙️ 輸入法與注音字體設定</summary>
+                    <div class="mt-3 space-y-3 text-xs">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="font-bold">輸入框預覽字體：</span>
+                            <select id="bpmf-font" class="rounded px-2.5 py-1.5 font-medium">
+                                <option value="BpmfZihiKaiStd-Regular" selected>字嗨注音楷書</option>
+                                <option value="BpmfZihiSerif-Regular">字嗨注音宋體</option>
+                                <option value="BpmfZihiSans-Regular">字嗨注音黑體</option>
+                                <option value="BpmfZihiOnly-R">字嗨只有注音</option>
+                                <option value="ToneOZ-Pinyin-Kai-Traditional">澳聲通拼音庫楷-繁</option>
+                            </select>
+                        </div>
+
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="font-bold">選字模式：</span>
+                            <div class="flex gap-3 font-medium">
+                                <label class="flex items-center gap-1.5 cursor-pointer">
+                                    <input type="radio" name="ime_input_mode" id="use_mcbopomofo" checked class="accent-purple-600">
+                                    <span>自動選字 (小麥)</span>
+                                </label>
+                                <label class="flex items-center gap-1.5 cursor-pointer">
+                                    <input type="radio" name="ime_input_mode" id="use_plainbopomofo" class="accent-purple-600">
+                                    <span>手動選字 (傳統)</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="font-bold">鍵盤配置：</span>
+                            <select id="ime-layout" class="rounded px-2.5 py-1.5 font-medium">
+                                <option value="Standard" selected>標準 (大千)</option>
+                                <option value="ETen">倚天</option>
+                                <option value="Hsu">許式</option>
+                                <option value="ETen26">倚天 26</option>
+                                <option value="HanyuPinyin">漢語拼音</option>
+                                <option value="IBM">IBM</option>
+                            </select>
+                        </div>
+
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="font-bold">選字位置：</span>
+                            <div class="flex gap-3 font-medium">
+                                <label class="flex items-center gap-1.5 cursor-pointer">
+                                    <input type="radio" name="ime_select_phrase" id="before_cursor" checked class="accent-purple-600">
+                                    <span>游標前 (漢音)</span>
+                                </label>
+                                <label class="flex items-center gap-1.5 cursor-pointer">
+                                    <input type="radio" name="ime_select_phrase" id="after_cursor" class="accent-purple-600">
+                                    <span>游標後 (微軟)</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="pt-2.5 border-t border-gray-300 leading-relaxed">
+                            <p class="ime-accent-title mb-1">💡 注音字體與破音字說明：</p>
+                            <p class="ime-subtext">字嗨注音字型使用 <strong>Unicode IVS (異體字選擇子)</strong> 技術，讓同一個中文字（如「快樂」與「音樂」的「樂」）透過後方隱藏的異體字選擇符呈現正確的破音讀音。</p>
+                            <p class="ime-subtext mt-1">開啟上方 <strong>「注音字體破音字支援 (IVS)」</strong> 後，在小麥注音打字選字的同時，就會自動根據詞彙讀音插入對應的 IVS 標記，送入聯絡簿並自動儲存於瀏覽器 LocalStorage 後依然完整保留！</p>
+                        </div>
+                    </div>
+                </details>
+            </div>
+        </aside>
+    </div>
+
+    <!-- 底部工具列 (保留 notice.html 原有控制項並整合內嵌小麥注音面板按鈕) -->
     <div id="controls" class="border-t border-gray-300">
-        <!-- 左下角：返回 + 主題切換 -->
+        <!-- 左下角：主題切換與列印 -->
         <div class="flex items-center gap-2">
-            <a href="index.html" class="flex items-center gap-1 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white font-medium px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition no-underline">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-                <span class="hidden sm:inline">返回</span>
-            </a>
-            
             <button onclick="toggleTheme()" title="切換主題 (淺色/深色)" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition">
                 <span id="theme-icon">🌓</span>
+            </button>
+            <button onclick="window.print()" title="列印聯絡簿" class="px-2.5 py-1 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm transition">
+                🖨️ 列印
             </button>
         </div>
 
         <!-- 中間：主要控制項 -->
         <div class="flex flex-wrap items-center justify-center gap-4 mx-auto">
             <div class="flex items-center gap-2">
-                <label for="font-size" class="font-bold">字體大小:</label>
+                <label for="layout-mode" class="font-bold text-sm">版面:</label>
+                <select id="layout-mode" class="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                    <option value="vertical" selected>直式聯絡簿</option>
+                    <option value="horizontal">橫式留言板</option>
+                </select>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <label for="font-size" class="font-bold text-sm">字體大小:</label>
                 <input type="range" id="font-size" min="24" max="72" value="40" class="w-24 sm:w-32 accent-green-600">
                 <span id="font-size-val" class="text-sm font-mono w-8">40</span>px
             </div>
 
             <div class="flex items-center gap-2">
-                <label for="font-family" class="font-bold">字型:</label>
-                <select id="font-family" class="border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-green-500 max-w-[150px]">
-                    <option value="default">預設標楷體</option>
-                    <option value="zihi">國字加注音</option>
-                    <option value="zihionly">只有注音</option>
-                    <option value="sans">黑體</option>
+                <label for="font-family" class="font-bold text-sm">聯絡簿字型:</label>
+                <select id="font-family" class="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                    <option value="zihi" selected>國字加注音 (字嗨楷體)</option>
+                    <option value="zihi-serif">國字加注音 (字嗨宋體)</option>
+                    <option value="zihi-sans">國字加注音 (字嗨黑體)</option>
+                    <option value="zihionly">只有注音 (字嗨純注音)</option>
+                    <option value="toneoz">國字加拼音 (澳聲通楷體)</option>
+                    <option value="default">預設標楷體 (無注音)</option>
+                    <option value="sans">黑體 (無注音)</option>
                 </select>
             </div>
 
-            <div class="flex items-center gap-2 border-l pl-2 border-gray-300 dark:border-gray-600">
-                <a href="https://openvanilla.github.io/McBopomofoWeb/" target="_blank" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded shadow transition flex items-center gap-2 no-underline text-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                    <span>網頁注音輸入法</span>
-                </a>
+            <div class="flex items-center gap-2 border-l pl-3 border-gray-300 dark:border-gray-600">
+                <button type="button" onclick="toggleImePanel()" id="btn-toggle-ime"
+                        class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded shadow transition flex items-center gap-1.5 text-sm font-medium">
+                    <span>⌨️ 小麥網頁注音輸入法</span>
+                </button>
             </div>
-            
-            <button onclick="openConfirmModal()" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded shadow transition text-sm">
+
+            <button onclick="openConfirmModal()" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded shadow transition text-sm">
                 清空
             </button>
         </div>
 
-        <!-- 右下角：授權資訊 -->
-        <a href="fonts/FONT-LICENSE.txt" target="_blank" class="text-gray-500 hover:text-gray-800 dark:hover:text-gray-300 text-sm underline px-2">
-            授權資訊
-        </a>
+        <!-- 右下角：軟體授權資訊 -->
+        <div class="flex items-center gap-2 text-xs">
+            <button type="button" onclick="openLicenseModal()" class="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white underline font-medium text-xs flex items-center gap-1">
+                <span>📜 軟體授權</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 軟體授權說明 Modal -->
+    <div id="license-modal-overlay" class="modal-overlay-style">
+        <div style="background: white; padding: 1.75rem; border-radius: 0.75rem; max-width: 640px; width: 92%; max-height: 85vh; overflow-y: auto; text-align: left; color: #111827; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.25);">
+            <div class="flex items-center justify-between border-b border-gray-200 pb-3 mb-4">
+                <h3 class="text-xl font-bold text-emerald-800 flex items-center gap-2">📜 軟體與字型開源授權聲明</h3>
+                <button type="button" onclick="closeLicenseModal()" class="text-gray-500 hover:text-gray-800 text-lg font-bold px-2">✕</button>
+            </div>
+            <div class="space-y-3.5 text-sm leading-relaxed text-gray-700">
+                <div class="p-3 rounded-lg bg-gray-50 border border-gray-200">
+                    <div class="font-bold text-gray-900">1. 數位聯絡簿介面設計 (notice.html)</div>
+                    <p class="text-xs text-gray-600 mt-1">
+                        專案來源：<a href="https://github.com/tsaihsingit/tsaihsingit.github.io/blob/main/notice.html" target="_blank" class="text-emerald-700 underline font-medium">tsaihsingit/tsaihsingit.github.io (notice.html)</a>，提供直式與橫式聯絡簿格線、行號尺標與瀏覽器本機儲存設計。
+                    </p>
+                </div>
+
+                <div class="p-3 rounded-lg bg-gray-50 border border-gray-200">
+                    <div class="font-bold text-gray-900">2. 小麥網頁注音輸入法 (McBopomofoWeb)</div>
+                    <p class="text-xs text-gray-600 mt-1">
+                        專案來源：<a href="https://github.com/openvanilla/McBopomofoWeb" target="_blank" class="text-emerald-700 underline font-medium">OpenVanilla / McBopomofoWeb</a><br>
+                        版權聲明：Copyright (c) 2022 and onwards The McBopomofo Authors.<br>
+                        授權條款：<strong>MIT License</strong>（支援智慧選字與 Unicode IVS 破音字注音選擇子標記）。
+                    </p>
+                </div>
+
+                <div class="p-3 rounded-lg bg-gray-50 border border-gray-200">
+                    <div class="font-bold text-gray-900">3. 字嗨注音字型系列 (BpmfZihi Fonts：楷書／宋體／黑體／純注音)</div>
+                    <p class="text-xs text-gray-600 mt-1">
+                        專案來源：<a href="https://github.com/ButTaiwan/bpmfvs" target="_blank" class="text-emerald-700 underline font-medium">ButTaiwan / bpmfvs (字嗨注音字型)</a>，作者：But Ko (柯志杰)<br>
+                        字型基礎：基於中華民國教育部標準楷書、Adobe/Google 思源宋體 (Source Han Serif)、思源黑體 (Source Han Sans) 衍生改作，支援 IVS 破音字讀音切換。<br>
+                        授權條款：<strong>SIL Open Font License 1.1 (OFL-1.1)</strong>。
+                    </p>
+                </div>
+
+                <div class="p-3 rounded-lg bg-gray-50 border border-gray-200">
+                    <div class="font-bold text-gray-900">4. 澳聲通拼音字型 (ToneOZ-Pinyin-Kai 澳聲通拼音庫楷)</div>
+                    <p class="text-xs text-gray-600 mt-1">
+                        專案來源：<a href="https://github.com/parlr/hanzi-pinyin-font" target="_blank" class="text-emerald-700 underline font-medium">parlr / hanzi-pinyin-font (ToneOZ.com)</a><br>
+                        授權條款：<strong>SIL Open Font License 1.1 (OFL-1.1)</strong>。
+                    </p>
+                </div>
+
+                <div class="p-3 rounded-lg bg-gray-50 border border-gray-200">
+                    <div class="font-bold text-gray-900">5. 螢幕虛擬鍵盤與前端字型框架</div>
+                    <p class="text-xs text-gray-600 mt-1">
+                        • <strong>simple-keyboard</strong> (<a href="https://github.com/hodgef/simple-keyboard" target="_blank" class="text-emerald-700 underline font-medium">hodgef/simple-keyboard</a>)：Copyright (c) Francisco Hodge，採用 <strong>MIT License</strong>。<br>
+                        • <strong>Tailwind CSS</strong> (<a href="https://tailwindcss.com/" target="_blank" class="text-emerald-700 underline font-medium">tailwindcss.com</a>)：Copyright (c) Tailwind Labs, Inc.，採用 <strong>MIT License</strong>。<br>
+                        • <strong>Noto Sans TC / Noto Serif TC</strong> (<a href="https://fonts.google.com/" target="_blank" class="text-emerald-700 underline font-medium">Google Fonts</a>)：採用 <strong>SIL Open Font License 1.1 (OFL-1.1)</strong>。
+                    </p>
+                </div>
+            </div>
+            <div class="mt-5 flex justify-end">
+                <button type="button" onclick="closeLicenseModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-5 py-2 rounded shadow transition text-sm">
+                    關閉視窗
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- 字嗨提示 Modal -->
@@ -396,47 +1221,100 @@
         <div id="modal" style="background: white; padding: 2rem; border-radius: 0.5rem; max-width: 500px; text-align: center; color: black;">
             <h3 class="text-xl font-bold mb-4 text-green-700">字嗨/BpmfVS 注音模式</h3>
             <p class="text-gray-700 mb-4 text-left leading-relaxed">
-                您選擇了注音支援字型 (ZiHiBpmf / ZiHiBpmfOnly)。<br><br>
-                1. 系統正在載入雲端字型。<br>
-                2. 若需輸入特殊破音字或修正聲調，<br>
-                   請使用下方的 <strong>「網頁注音輸入法」</strong> 連結。<br>
+                您選擇了注音支援字型。<br><br>
+                1. 系統正在載入字嗨注音字型。<br>
+                2. 若需輸入特殊破音字（如「快樂」與「音樂」的「樂」）或修正聲調，<br>
+                   請點擊下方工具列的 <strong>「⌨️ 小麥網頁注音輸入法」</strong> 開啟內嵌注音面板打字（已預設開啟破音字 IVS 支援）。<br>
             </p>
-            <button onclick="closeModal()" class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700">我知道了</button>
+            <div class="flex justify-center gap-3">
+                <button onclick="closeModal(); toggleImePanel(true);" class="bg-purple-600 text-white px-5 py-2 rounded hover:bg-purple-700">開啟小麥注音面板</button>
+                <button onclick="closeModal()" class="bg-green-600 text-white px-5 py-2 rounded hover:bg-green-700">我知道了</button>
+            </div>
         </div>
     </div>
 
     <!-- 清空確認 Modal -->
     <div id="confirm-modal-overlay" class="modal-overlay-style">
         <div style="background: white; padding: 2rem; border-radius: 0.5rem; max-width: 400px; text-align: center; color: black;">
-            <h3 class="text-xl font-bold mb-4 text-red-700">確定清空內容？</h3>
-            <p class="text-gray-700 mb-6">此動作無法復原，您確定要清空所有文字嗎？</p>
+            <h3 class="text-xl font-bold mb-4 text-red-700">確定清空畫面內容？</h3>
+            <p class="text-gray-700 mb-6">這會清空目前編輯區上的文字，確定要清空嗎？</p>
             <div class="flex justify-center gap-4">
-                <button onclick="performClear()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded shadow transition">確定</button>
+                <button onclick="performClear()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded shadow transition">確定清空</button>
                 <button onclick="closeConfirmModal()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded shadow transition">取消</button>
             </div>
         </div>
     </div>
 
+    <!-- 載入 Simple-Keyboard 與 McBopomofoWeb 核心 Bundle -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/simple-keyboard/3.8.84/index.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://openvanilla.github.io/McBopomofoWeb/bundle.js"></script>
+
     <script>
+        // =========================================================================
+        // 第一部分：數位聯絡簿版面、主題、字體與尺標控制
+        // =========================================================================
         const root = document.documentElement;
+        const paperBoard = document.getElementById('paper-board');
+        const layoutModeSelect = document.getElementById('layout-mode');
         const fontSizeInput = document.getElementById('font-size');
         const fontSizeVal = document.getElementById('font-size-val');
         const fontFamilySelect = document.getElementById('font-family');
         const modalOverlay = document.getElementById('modal-overlay');
         const confirmModalOverlay = document.getElementById('confirm-modal-overlay');
+        const licenseModalOverlay = document.getElementById('license-modal-overlay');
         const contentArea = document.getElementById('content-area');
         const lineRuler = document.getElementById('line-ruler');
         const mainColumn = document.getElementById('main-column');
         const saveStatus = document.getElementById('save-status');
+        const liveClockEl = document.getElementById('live-clock');
 
         const elYear = document.getElementById('roc-year');
         const elMonth = document.getElementById('month');
         const elDay = document.getElementById('day');
         const elWeekday = document.getElementById('weekday');
+        const elAuthor = document.getElementById('msg-author');
 
         const STORAGE_KEY = 'contactbook_data_v1';
+        const LOCAL_MESSAGES_KEY = 'contactbook_messages_list_v1';
 
-        // --- 主題切換邏輯 ---
+        let messagesList = [];
+        let currentMessageIndex = -1; // -1 代表正在編輯未歸檔的聯絡簿草稿
+
+        function updateLiveClock() {
+            if (!liveClockEl) return;
+            const now = new Date();
+            const hh = String(now.getHours()).padStart(2, '0');
+            const mm = String(now.getMinutes()).padStart(2, '0');
+            const ss = String(now.getSeconds()).padStart(2, '0');
+            liveClockEl.innerText = `${hh}:${mm}:${ss}`;
+        }
+
+        function applyLayoutMode(mode) {
+            const normalized = (mode === 'horizontal') ? 'horizontal' : 'vertical';
+            if (layoutModeSelect && layoutModeSelect.value !== normalized) {
+                layoutModeSelect.value = normalized;
+            }
+            if (paperBoard) {
+                paperBoard.classList.toggle('layout-horizontal', normalized === 'horizontal');
+                paperBoard.classList.toggle('layout-vertical', normalized === 'vertical');
+            }
+            requestAnimationFrame(() => {
+                updateRuler();
+                contentArea.style.display = 'none';
+                void contentArea.offsetHeight;
+                contentArea.style.display = '';
+            });
+        }
+
+        function showToast(msg, duration = 2000) {
+            saveStatus.innerText = msg;
+            saveStatus.classList.add('show');
+            clearTimeout(saveStatus._timer);
+            saveStatus._timer = setTimeout(() => {
+                saveStatus.classList.remove('show');
+            }, duration);
+        }
+
         function toggleTheme() {
             const currentTheme = root.getAttribute('data-theme');
             const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
@@ -451,73 +1329,75 @@
             }
         }
 
-        // --- 自動儲存與載入邏輯 ---
-        function saveData() {
-            const data = {
-                content: contentArea.innerHTML,
-                fontSize: fontSizeInput.value,
-                fontFamily: fontFamilySelect.value
-            };
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-            
-            // 顯示已儲存提示
-            saveStatus.classList.add('show');
-            setTimeout(() => {
-                saveStatus.classList.remove('show');
-            }, 1500);
-        }
+        function applyFontFamily(selected, showHintModal = false) {
+            let fontStack = '';
+            let letterSpacing = '0em';
 
-        function loadData() {
-            const savedData = localStorage.getItem(STORAGE_KEY);
-            if (savedData) {
-                try {
-                    const data = JSON.parse(savedData);
-                    // 恢復內容
-                    if (data.content) contentArea.innerHTML = data.content;
-                    
-                    // 恢復設定
-                    if (data.fontSize) {
-                        fontSizeInput.value = data.fontSize;
-                        fontSizeVal.innerText = data.fontSize;
-                        root.style.setProperty('--font-size', data.fontSize + 'px');
-                    }
-                    if (data.fontFamily) {
-                        fontFamilySelect.value = data.fontFamily;
-                        // 觸發 change 事件以應用字體
-                        const event = new Event('change');
-                        fontFamilySelect.dispatchEvent(event);
-                    }
-                } catch (e) {
-                    console.error("載入資料失敗:", e);
-                }
+            if (showHintModal && (selected.startsWith('zihi') || selected === 'toneoz')) {
+                showModal();
             }
-            // 無論有無存檔，都執行日期初始化為今天
-            setDate();
+
+            if (selected === 'zihi') {
+                fontStack = '"ZiHiBpmf", "BpmfZihiKaiStd-Regular", "DFKai-SB", "BiauKai", "KaiTi", serif';
+                letterSpacing = '0.2em';
+            } else if (selected === 'zihi-serif') {
+                fontStack = '"BpmfZihiSerif-Regular", "ZiHiBpmf", "Noto Serif TC", serif';
+                letterSpacing = '0.2em';
+            } else if (selected === 'zihi-sans') {
+                fontStack = '"BpmfZihiSans-Regular", "ZiHiBpmf", "Noto Sans TC", sans-serif';
+                letterSpacing = '0.2em';
+            } else if (selected === 'zihionly') {
+                fontStack = '"ZiHiBpmfOnly", "BpmfZihiOnly-R", serif';
+                letterSpacing = '0.4em';
+            } else if (selected === 'toneoz') {
+                fontStack = '"ToneOZ-Pinyin-Kai-Traditional", "DFKai-SB", serif';
+                letterSpacing = '0.2em';
+            } else if (selected === 'sans') {
+                fontStack = '"Noto Sans TC", "Microsoft JhengHei", sans-serif';
+            } else {
+                fontStack = '"DFKai-SB", "BiauKai", "标楷体", "KaiTi", "Noto Serif TC", serif';
+            }
+
+            root.style.setProperty('--current-font', fontStack);
+            root.style.setProperty('--letter-spacing', letterSpacing);
+
+            requestAnimationFrame(() => {
+                updateRuler();
+                contentArea.style.display = 'none';
+                void contentArea.offsetHeight;
+                contentArea.style.display = '';
+            });
         }
 
-        // --- 行號尺標更新邏輯 ---
         function updateRuler() {
-            const fontSize = parseInt(fontSizeInput.value);
-            // 改為動態讀取 CSS 變數，確保比例一致
+            const fontSize = parseInt(fontSizeInput.value) || 40;
             const ratioStr = getComputedStyle(root).getPropertyValue('--line-height-ratio').trim();
             const lineHeightRatio = parseFloat(ratioStr) || 1.8;
-            
-            const columnWidth = fontSize * lineHeightRatio;
-            const totalWidth = mainColumn.clientWidth;
-            
-            // 計算可容納的行數
-            const count = Math.ceil(totalWidth / columnWidth);
-            
-            let html = '';
-            for (let i = 1; i <= count; i++) {
-                html += `<div class="ruler-num" style="width: ${columnWidth}px">${i}</div>`;
+            const step = fontSize * lineHeightRatio;
+            const isHorizontal = paperBoard && paperBoard.classList.contains('layout-horizontal');
+
+            if (isHorizontal) {
+                const totalHeight = mainColumn.clientHeight;
+                const count = Math.max(1, Math.ceil(totalHeight / step));
+                let html = '';
+                for (let i = 1; i <= count; i++) {
+                    html += `<div class="ruler-num" style="height: ${step}px; width: 100%;">${i}</div>`;
+                }
+                lineRuler.innerHTML = html;
+            } else {
+                const totalWidth = mainColumn.clientWidth;
+                const count = Math.max(1, Math.ceil(totalWidth / step));
+                let html = '';
+                for (let i = 1; i <= count; i++) {
+                    html += `<div class="ruler-num" style="width: ${step}px; height: 100%;">${i}</div>`;
+                }
+                lineRuler.innerHTML = html;
             }
-            lineRuler.innerHTML = html;
         }
 
         window.addEventListener('resize', updateRuler);
 
-        function setDate() {
+        function setDateToToday() {
             const now = new Date();
             elYear.innerText = now.getFullYear() - 1911;
             elMonth.innerText = now.getMonth() + 1;
@@ -525,109 +1405,1110 @@
             elWeekday.innerText = ['日', '一', '二', '三', '四', '五', '六'][now.getDay()];
         }
 
-        // --- 監聽器 ---
-        
-        // 字體大小：使用 requestAnimationFrame 確保滑動時流暢更新版面
+        // 即時將目前聯絡簿內容與設定自動存入 LocalStorage
+        function saveDraftToLocal(silent = false) {
+            const data = {
+                content: contentArea.innerHTML,
+                fontSize: fontSizeInput.value,
+                fontFamily: fontFamilySelect.value,
+                layoutMode: layoutModeSelect ? layoutModeSelect.value : 'vertical',
+                rocYear: elYear.innerText.trim(),
+                month: elMonth.innerText.trim(),
+                day: elDay.innerText.trim(),
+                weekday: elWeekday.innerText.trim(),
+                author: elAuthor ? elAuthor.value : '今日聯絡事項',
+                activeMessageId: (currentMessageIndex >= 0 && messagesList[currentMessageIndex])
+                    ? messagesList[currentMessageIndex].id
+                    : null
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+
+            // 若目前正在檢視某筆已儲存紀錄，同步自動更新該筆紀錄於 LocalStorage
+            if (currentMessageIndex >= 0 && messagesList[currentMessageIndex]) {
+                messagesList[currentMessageIndex] = {
+                    ...messagesList[currentMessageIndex],
+                    rocYear: data.rocYear,
+                    month: data.month,
+                    day: data.day,
+                    weekday: data.weekday,
+                    author: data.author.trim() || '聯絡簿留言',
+                    content: data.content,
+                    fontSize: data.fontSize,
+                    fontFamily: data.fontFamily,
+                    layoutMode: data.layoutMode
+                };
+                localStorage.setItem(LOCAL_MESSAGES_KEY, JSON.stringify(messagesList));
+                renderHistoryList();
+            }
+
+            if (!silent) {
+                showToast('已自動儲存', 1200);
+            }
+        }
+
+        if (layoutModeSelect) {
+            layoutModeSelect.addEventListener('change', (e) => {
+                applyLayoutMode(e.target.value);
+                saveDraftToLocal();
+            });
+        }
+
         fontSizeInput.addEventListener('input', (e) => {
             const size = e.target.value;
             fontSizeVal.innerText = size;
-            
             requestAnimationFrame(() => {
                 root.style.setProperty('--font-size', size + 'px');
-                updateRuler(); // 調整大小時立即重排尺標
-                
-                // 強制瀏覽器重新計算版面 (Reflow)，解決 vertical-rl 模式下文字靠左的問題
-                contentArea.style.display = 'none';
-                void contentArea.offsetHeight; // 讀取屬性強制 reflow
-                contentArea.style.display = '';
-            });
-            
-            saveData(); 
-        });
-
-        fontFamilySelect.addEventListener('change', (e) => {
-            const selected = e.target.value;
-            let fontStack = '';
-            let letterSpacing = '0em'; // 預設 letter-spacing
-
-            // 防止遞迴觸發 (如果是 loadData 呼叫的)
-            if (e.isTrusted === false && (selected === 'zihi' || selected === 'zihionly')) {
-                 // 程式觸發的，不顯示 Modal
-            } else if (selected === 'zihi' || selected === 'zihionly') {
-                 showModal();
-            }
-
-            if (selected === 'zihi') {
-                fontStack = '"ZiHiBpmf", "ZihiChinyinKai", "ZihiChinyin", "BpmfVS", "GenRyuMin", "DFKai-SB", "BiauKai", "KaiTi", serif';
-                letterSpacing = '0.2em'; // 國字加注音：letter-spacing 0.2em
-            } else if (selected === 'zihionly') {
-                fontStack = '"ZiHiBpmfOnly", "ZihiBpmfOnly", "BpmfVS", serif';
-                letterSpacing = '0.4em'; // 只有注音：letter-spacing 0.4em
-            } else if (selected === 'sans') {
-                fontStack = '"Noto Sans TC", "Microsoft JhengHei", sans-serif';
-            } else {
-                fontStack = '"DFKai-SB", "BiauKai", "标楷体", "KaiTi", "Noto Serif TC", serif';
-            }
-            
-            // 設定字體與字元間距
-            root.style.setProperty('--current-font', fontStack);
-            root.style.setProperty('--letter-spacing', letterSpacing);
-
-            // 強制重繪與更新尺標
-            requestAnimationFrame(() => {
                 updateRuler();
                 contentArea.style.display = 'none';
                 void contentArea.offsetHeight;
                 contentArea.style.display = '';
             });
-
-            saveData(); 
+            saveDraftToLocal();
         });
 
-        // 監聽內容變更：觸發自動儲存 + 更新日期為當下
+        fontFamilySelect.addEventListener('change', (e) => {
+            applyFontFamily(e.target.value, e.isTrusted);
+            saveDraftToLocal();
+        });
+
         contentArea.addEventListener('input', () => {
-            setDate(); // 修改時自動更新日期
-            saveData();
+            saveDraftToLocal();
         });
 
-        // Modal Functions
-        function showModal() { modalOverlay.style.display = 'flex'; }
-        function closeModal() { modalOverlay.style.display = 'none'; contentArea.focus(); }
+        [elYear, elMonth, elDay, elWeekday].forEach((el) => {
+            if (el) {
+                el.addEventListener('input', () => saveDraftToLocal());
+            }
+        });
 
-        // 清空確認功能
-        function openConfirmModal() { confirmModalOverlay.style.display = 'flex'; }
-        function closeConfirmModal() { confirmModalOverlay.style.display = 'none'; }
-        function performClear() {
-            contentArea.innerText = '';
-            setDate(); // 清空時重置為今天
-            saveData(); 
-            closeConfirmModal();
-            contentArea.focus();
+        if (elAuthor) {
+            elAuthor.addEventListener('input', () => saveDraftToLocal());
         }
 
         contentArea.addEventListener('paste', function(e) {
             e.preventDefault();
-            var text = (e.originalEvent || e).clipboardData.getData('text/plain');
+            const text = (e.originalEvent || e).clipboardData.getData('text/plain');
             document.execCommand('insertText', false, text);
         });
 
-        // 初始化
-        loadTheme();
-        loadData(); // 載入資料 (內部會設定字體大小變數)
-        
-        // 確保載入資料後，尺標依據正確的字體大小繪製
-        requestAnimationFrame(() => {
-            updateRuler();
-        });
+        function showModal() { modalOverlay.style.display = 'flex'; }
+        function closeModal() { modalOverlay.style.display = 'none'; contentArea.focus(); }
+        function openConfirmModal() { confirmModalOverlay.style.display = 'flex'; }
+        function closeConfirmModal() { confirmModalOverlay.style.display = 'none'; }
+        function openLicenseModal() { if (licenseModalOverlay) licenseModalOverlay.style.display = 'flex'; }
+        function closeLicenseModal() { if (licenseModalOverlay) licenseModalOverlay.style.display = 'none'; }
+        function performClear() {
+            contentArea.innerText = '';
+            saveDraftToLocal(true);
+            closeConfirmModal();
+            contentArea.focus();
+            showToast('已清空編輯區文字');
+        }
 
-        // 點擊背景關閉 Modal
         modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
         confirmModalOverlay.addEventListener('click', (e) => { if (e.target === confirmModalOverlay) closeConfirmModal(); });
+        if (licenseModalOverlay) {
+            licenseModalOverlay.addEventListener('click', (e) => { if (e.target === licenseModalOverlay) closeLicenseModal(); });
+        }
 
+        // =========================================================================
+        // 第二部分：瀏覽器 LocalStorage 多筆聯絡簿紀錄管理
+        // =========================================================================
+        function getCurrentBoardPayload() {
+            return {
+                id: currentMessageIndex >= 0 && messagesList[currentMessageIndex] ? messagesList[currentMessageIndex].id : null,
+                rocYear: elYear.innerText.trim(),
+                month: elMonth.innerText.trim(),
+                day: elDay.innerText.trim(),
+                weekday: elWeekday.innerText.trim(),
+                author: elAuthor.value.trim() || '聯絡簿留言',
+                content: contentArea.innerHTML,
+                fontSize: fontSizeInput.value,
+                fontFamily: fontFamilySelect.value,
+                layoutMode: layoutModeSelect ? layoutModeSelect.value : 'vertical'
+            };
+        }
+
+        function loadMessageIntoBoard(msg, index, saveDraft = true) {
+            if (!msg) return;
+            currentMessageIndex = index;
+
+            elYear.innerText = msg.rocYear || '';
+            elMonth.innerText = msg.month || '';
+            elDay.innerText = msg.day || '';
+            elWeekday.innerText = msg.weekday || '';
+            elAuthor.value = msg.author || '聯絡簿留言';
+            contentArea.innerHTML = msg.content || '';
+
+            const mode = (msg.layoutMode === 'horizontal') ? 'horizontal' : 'vertical';
+            applyLayoutMode(mode);
+
+            if (msg.fontSize) {
+                fontSizeInput.value = msg.fontSize;
+                fontSizeVal.innerText = msg.fontSize;
+                root.style.setProperty('--font-size', msg.fontSize + 'px');
+            }
+            if (msg.fontFamily) {
+                fontFamilySelect.value = msg.fontFamily;
+                applyFontFamily(msg.fontFamily, false);
+            } else {
+                updateRuler();
+            }
+
+            updateNavigationUI();
+            renderHistoryList();
+            if (saveDraft) {
+                saveDraftToLocal(true);
+            }
+        }
+
+        function updateNavigationUI() {
+            const countBadge = document.getElementById('msg-count-badge');
+            const indicator = document.getElementById('current-msg-indicator');
+            const btnPrev = document.getElementById('btn-prev-msg');
+            const btnNext = document.getElementById('btn-next-msg');
+            const btnUpdate = document.getElementById('btn-update-local');
+
+            countBadge.innerText = messagesList.length;
+
+            if (currentMessageIndex >= 0 && currentMessageIndex < messagesList.length) {
+                indicator.innerText = `第 ${currentMessageIndex + 1} / ${messagesList.length} 筆`;
+                btnPrev.disabled = (currentMessageIndex <= 0);
+                btnNext.disabled = (currentMessageIndex >= messagesList.length - 1);
+                btnUpdate.classList.remove('hidden');
+                btnUpdate.classList.add('flex');
+            } else {
+                indicator.innerText = `新聯絡簿 (共 ${messagesList.length} 筆)`;
+                btnPrev.disabled = (messagesList.length === 0);
+                btnNext.disabled = true;
+                btnUpdate.classList.add('hidden');
+                btnUpdate.classList.remove('flex');
+            }
+        }
+
+        function navigateMessage(delta) {
+            if (messagesList.length === 0) return;
+            let nextIndex = currentMessageIndex + delta;
+            if (currentMessageIndex === -1) {
+                nextIndex = 0;
+            }
+            if (nextIndex >= 0 && nextIndex < messagesList.length) {
+                loadMessageIntoBoard(messagesList[nextIndex], nextIndex);
+                showToast(`已切換至第 ${nextIndex + 1} 筆：${messagesList[nextIndex].author}`);
+            }
+        }
+
+        function prepareNewMessage() {
+            currentMessageIndex = -1;
+            setDateToToday();
+            elAuthor.value = '今日聯絡事項';
+            contentArea.innerHTML = '';
+            updateNavigationUI();
+            renderHistoryList();
+            saveDraftToLocal(true);
+            contentArea.focus();
+            showToast('已開啟空白新聯絡簿');
+        }
+
+        function stripHtmlPreview(html) {
+            const tmp = document.createElement('div');
+            tmp.innerHTML = (html || '').replace(/<br\s*\/?>/gi, ' ');
+            return (tmp.textContent || tmp.innerText || '').trim();
+        }
+
+        function renderHistoryList() {
+            const listEl = document.getElementById('history-list');
+            if (!messagesList || messagesList.length === 0) {
+                listEl.innerHTML = '<p class="text-sm text-gray-500 text-center py-8">目前尚無任何儲存紀錄</p>';
+                return;
+            }
+
+            listEl.innerHTML = messagesList.map((msg, idx) => {
+                const isSelected = (idx === currentMessageIndex);
+                const preview = stripHtmlPreview(msg.content) || '(空白內容)';
+                const isHoriz = (msg.layoutMode === 'horizontal');
+                const layoutBadge = isHoriz
+                    ? '<span class="text-[11px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 font-bold">橫式</span>'
+                    : '<span class="text-[11px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200 font-bold">直式</span>';
+                return `
+                    <div onclick="selectMessageFromDrawer(${idx})"
+                         class="p-3 rounded-lg border cursor-pointer transition ${isSelected
+                             ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-950/50 ring-2 ring-emerald-500'
+                             : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'}">
+                        <div class="flex items-center justify-between mb-1">
+                            <div class="flex items-center gap-1.5 min-w-0">
+                                ${layoutBadge}
+                                <span class="font-bold text-sm text-emerald-800 dark:text-emerald-300 truncate">${escapeHtml(msg.author || '未命名留言')}</span>
+                            </div>
+                            <div class="flex items-center gap-1 shrink-0">
+                                <span class="text-xs px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                                    民國${escapeHtml(msg.rocYear)}/${escapeHtml(msg.month)}/${escapeHtml(msg.day)} (${escapeHtml(msg.weekday)})
+                                </span>
+                                <button onclick="event.stopPropagation(); deleteMessageById('${escapeHtml(msg.id)}')"
+                                        title="刪除此筆紀錄"
+                                        class="text-gray-400 hover:text-red-600 px-1 text-xs">🗑️</button>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-600 dark:text-gray-300 line-clamp-2 mb-1">${escapeHtml(preview)}</p>
+                        <div class="flex items-center justify-between text-[11px] text-gray-400">
+                            <span>#${idx + 1}</span>
+                            <span>${escapeHtml(msg.createdAt || '')}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function escapeHtml(str) {
+            return String(str || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function selectMessageFromDrawer(idx) {
+            if (idx >= 0 && idx < messagesList.length) {
+                loadMessageIntoBoard(messagesList[idx], idx);
+            }
+        }
+
+        function toggleHistoryDrawer(forceState) {
+            const drawer = document.getElementById('history-drawer');
+            if (typeof forceState === 'boolean') {
+                drawer.classList.toggle('open', forceState);
+            } else {
+                drawer.classList.toggle('open');
+            }
+        }
+
+        // 從瀏覽器 LocalStorage 載入聯絡簿狀態與歷史紀錄清單
+        function loadFromLocalStorage() {
+            const rawList = localStorage.getItem(LOCAL_MESSAGES_KEY);
+            if (rawList) {
+                try {
+                    messagesList = JSON.parse(rawList);
+                } catch (e) {
+                    messagesList = [];
+                }
+            }
+            if (!Array.isArray(messagesList)) {
+                messagesList = [];
+            }
+
+            // 檢查是否有最後編輯的即時狀態 (contactbook_data_v1)
+            const rawDraft = localStorage.getItem(STORAGE_KEY);
+            let draftData = null;
+            if (rawDraft) {
+                try {
+                    draftData = JSON.parse(rawDraft);
+                } catch (e) {
+                    draftData = null;
+                }
+            }
+
+            if (messagesList.length === 0) {
+                const now = new Date();
+                const initialMsg = {
+                    id: 'local-demo-1',
+                    createdAt: now.toLocaleString('zh-TW', { hour12: false }),
+                    rocYear: (draftData && draftData.rocYear) ? String(draftData.rocYear) : String(now.getFullYear() - 1911),
+                    month: (draftData && draftData.month) ? String(draftData.month) : String(now.getMonth() + 1),
+                    day: (draftData && draftData.day) ? String(draftData.day) : String(now.getDate()),
+                    weekday: (draftData && draftData.weekday) ? String(draftData.weekday) : ['日', '一', '二', '三', '四', '五', '六'][now.getDay()],
+                    author: (draftData && draftData.author) ? draftData.author : '今日聯絡事項',
+                    content: (draftData && typeof draftData.content === 'string')
+                        ? draftData.content
+                        : '一、準備好繳交的作業。<br>二、安靜閱讀。<br>三、點擊下方「小麥網頁注音輸入法」可打出正確破音字注音！',
+                    fontSize: (draftData && draftData.fontSize) ? String(draftData.fontSize) : '40',
+                    fontFamily: (draftData && draftData.fontFamily) ? draftData.fontFamily : 'zihi',
+                    layoutMode: (draftData && draftData.layoutMode) ? draftData.layoutMode : 'vertical'
+                };
+                messagesList = [initialMsg];
+                localStorage.setItem(LOCAL_MESSAGES_KEY, JSON.stringify(messagesList));
+                loadMessageIntoBoard(messagesList[0], 0, true);
+                return;
+            }
+
+            if (draftData) {
+                const matchedIdx = draftData.activeMessageId
+                    ? messagesList.findIndex(m => m.id === draftData.activeMessageId)
+                    : -1;
+                if (matchedIdx >= 0) {
+                    loadMessageIntoBoard({
+                        ...messagesList[matchedIdx],
+                        ...draftData
+                    }, matchedIdx, false);
+                } else {
+                    loadMessageIntoBoard(draftData, -1, false);
+                }
+            } else {
+                loadMessageIntoBoard(messagesList[0], 0, false);
+            }
+        }
+
+        function saveAsNewToLocal() {
+            const payload = getCurrentBoardPayload();
+            const now = new Date();
+            const newMsg = {
+                ...payload,
+                id: 'local-' + Date.now(),
+                createdAt: now.toLocaleString('zh-TW', { hour12: false })
+            };
+            messagesList.unshift(newMsg);
+            localStorage.setItem(LOCAL_MESSAGES_KEY, JSON.stringify(messagesList));
+            loadMessageIntoBoard(messagesList[0], 0, true);
+            showToast('✅ 已新增至瀏覽器留言紀錄');
+        }
+
+        function updateCurrentInLocal() {
+            if (currentMessageIndex < 0 || !messagesList[currentMessageIndex]) return;
+            const payload = getCurrentBoardPayload();
+            const now = new Date();
+            messagesList[currentMessageIndex] = {
+                ...payload,
+                createdAt: now.toLocaleString('zh-TW', { hour12: false })
+            };
+            localStorage.setItem(LOCAL_MESSAGES_KEY, JSON.stringify(messagesList));
+            loadMessageIntoBoard(messagesList[currentMessageIndex], currentMessageIndex, true);
+            showToast('✅ 已更新此筆留言紀錄！');
+        }
+
+        function deleteMessageById(id) {
+            if (!confirm('確定要刪除此筆留言紀錄嗎？')) return;
+            messagesList = messagesList.filter(m => m.id !== id);
+            localStorage.setItem(LOCAL_MESSAGES_KEY, JSON.stringify(messagesList));
+            if (messagesList.length > 0) {
+                loadMessageIntoBoard(messagesList[0], 0, true);
+            } else {
+                prepareNewMessage();
+            }
+            showToast('🗑️ 已刪除該筆留言紀錄');
+        }
+
+        // =========================================================================
+        // 第三部分：小麥網頁注音輸入法 (McBopomofoWeb) 整合邏輯
+        // =========================================================================
+        function toggleImePanel(forceOpen) {
+            const panel = document.getElementById('mcbopomofo-panel');
+            const isOpen = typeof forceOpen === 'boolean' ? forceOpen : !panel.classList.contains('open');
+            panel.classList.toggle('open', isOpen);
+            requestAnimationFrame(() => {
+                updateRuler();
+                if (isOpen) {
+                    if (window.mcbopomofoApp && window.mcbopomofoApp.updateVirtualKeyboard) {
+                        window.mcbopomofoApp.updateVirtualKeyboard();
+                    }
+                    document.getElementById('ime-text-area').focus();
+                }
+            });
+        }
+
+        function toggleScreenKeyboard() {
+            const wrapper = document.getElementById('keyboard-wrapper');
+            const btn = document.getElementById('btn-toggle-vk');
+            const isHidden = wrapper.style.display === 'none';
+            wrapper.style.display = isHidden ? 'block' : 'none';
+            btn.innerText = isHidden ? '隱藏小鍵盤' : '顯示小鍵盤';
+        }
+
+        function clearImeTextArea() {
+            const ta = document.getElementById('ime-text-area');
+            if (window.mcbopomofoApp) {
+                if (window.mcbopomofoApp.imeUi) {
+                    window.mcbopomofoApp.imeUi.clearComposingState();
+                }
+                if (window.mcbopomofoApp.controller) {
+                    window.mcbopomofoApp.controller.reset();
+                }
+            }
+            ta.value = '';
+            ta.focus();
+        }
+
+        function sendImeTextToBoard(mode) {
+            const ta = document.getElementById('ime-text-area');
+            // 若使用者打完字還沒按 Enter，自動替使用者送出 Enter 將組字緩衝區(含 IVS 破音字選擇符)正式提交
+            if (window.mcbopomofoApp && window.mcbopomofoApp.commitComposing) {
+                window.mcbopomofoApp.commitComposing();
+            }
+
+            const text = ta.value;
+            if (!text) {
+                showToast('請先在小麥注音輸入框中輸入文字');
+                ta.focus();
+                return;
+            }
+
+            // 將換行轉為 <br> 以符合聯絡簿直書換行格式
+            const htmlLines = escapeHtml(text).replace(/\n/g, '<br>');
+
+            if (mode === 'replace') {
+                contentArea.innerHTML = htmlLines;
+                showToast('✅ 已將小麥注音文字取代至聯絡簿');
+            } else {
+                const currentHtml = contentArea.innerHTML.trim();
+                if (!currentHtml || currentHtml === '<br>') {
+                    contentArea.innerHTML = htmlLines;
+                } else {
+                    contentArea.innerHTML = currentHtml + '<br>' + htmlLines;
+                }
+                showToast('✅ 已將小麥注音文字送入聯絡簿');
+            }
+
+            // 若小麥開啟了注音字體破音字支援，且聯絡簿目前是無注音字型，貼心自動切換為字嗨注音字型
+            const bpmfEnabled = document.getElementById('bopomofo_font_annotation_support_enabled').checked;
+            if (bpmfEnabled && (fontFamilySelect.value === 'default' || fontFamilySelect.value === 'sans')) {
+                fontFamilySelect.value = 'zihi';
+                applyFontFamily('zihi', false);
+            }
+
+            saveDraftToLocal(true);
+        }
+
+        // 初始化 McBopomofoWeb 輸入法控制器與虛擬小鍵盤
+        let imeInitRetries = 0;
+        function initMcBopomofoWeb() {
+            if (window.mcbopomofoApp && window.mcbopomofoApp.initialized) {
+                return;
+            }
+
+            const badge = document.getElementById('ime-loading-badge');
+            if (!window.mcbopomofo || !window.mcbopomofo.InputController) {
+                imeInitRetries++;
+                if (imeInitRetries <= 60) {
+                    if (badge) badge.innerText = `載入詞庫中 (${imeInitRetries})...`;
+                    setTimeout(initMcBopomofoWeb, 250);
+                } else if (badge) {
+                    badge.innerText = '詞庫載入失敗，請重新整理網頁';
+                    badge.className = 'text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-semibold';
+                }
+                return;
+            }
+
+            const $ = (id) => document.getElementById(id);
+            const textArea = $('ime-text-area');
+            const functionDiv = $('ime-function');
+            const composingBufferDiv = $('composing_buffer');
+            const candidatesDiv = $('candidates');
+            const tooltipDiv = $('tooltip');
+
+            let alphabetMode = false;
+            let bpmfFontSupport = true;
+
+            // =====================================================================
+            // 1. 建立字嗨注音字型破音字 (Unicode IVS) 完整讀音資料庫與字元簇工具
+            // =====================================================================
+            const bpmfService = (window.mcbopomofo && window.mcbopomofo.Service)
+                ? new window.mcbopomofo.Service()
+                : null;
+
+            // baseChar -> Array<{ reading, rawReading, annotated, isDefault, isBlank }>
+            const charReadingsMap = new Map();
+            if (bpmfService && bpmfService.vs_ && bpmfService.vs_.variantsMap) {
+                const variantsMap = bpmfService.vs_.variantsMap;
+                for (const key in variantsMap) {
+                    if (!Object.prototype.hasOwnProperty.call(variantsMap, key)) continue;
+                    const dashIdx = key.indexOf('-');
+                    if (dashIdx <= 0) continue;
+                    const baseChar = key.substring(0, dashIdx);
+                    const rawReading = key.substring(dashIdx + 1);
+                    const annotated = variantsMap[key];
+                    let list = charReadingsMap.get(baseChar);
+                    if (!list) {
+                        list = [];
+                        charReadingsMap.set(baseChar, list);
+                    }
+                    if (rawReading === 'na') {
+                        list.push({ reading: '無注音', rawReading: 'na', annotated, isDefault: false, isBlank: true });
+                    } else {
+                        const isDefault = (annotated === baseChar);
+                        list.push({ reading: rawReading, rawReading, annotated, isDefault, isBlank: false });
+                    }
+                }
+                for (const [, list] of charReadingsMap.entries()) {
+                    list.sort((a, b) => {
+                        if (a.isBlank !== b.isBlank) return a.isBlank ? 1 : -1;
+                        if (a.isDefault !== b.isDefault) return a.isDefault ? -1 : 1;
+                        return 0;
+                    });
+                }
+            }
+
+            // 移除字元後方的 Unicode IVS 異體字選擇子，取得基礎國字
+            function getBaseChar(grapheme) {
+                if (!grapheme) return '';
+                return grapheme.replace(/(?:\uDB40[\uDD00-\uDDEF]|[\uFE00-\uFE0F])+/g, '');
+            }
+
+            // 將字串拆分為完整的字元簇 (基礎字元 + 緊隨其後的 IVS 異體字選擇子)，並保留 UTF-16 起訖索引
+            function parseGraphemesWithOffsets(str) {
+                if (!str) return [];
+                const regex = /(?:[\uD800-\uDBFF][\uDC00-\uDFFF]|[\s\S])(?:\uDB40[\uDD00-\uDDEF]|[\uFE00-\uFE0F])*/g;
+                const result = [];
+                let match;
+                let idx = 0;
+                while ((match = regex.exec(str)) !== null) {
+                    const full = match[0];
+                    const base = getBaseChar(full);
+                    result.push({
+                        index: idx++,
+                        full,
+                        base,
+                        start: match.index,
+                        end: match.index + full.length
+                    });
+                }
+                return result;
+            }
+
+            // =====================================================================
+            // 2. 嚴格管理組字預覽狀態，徹底根除「文字重複出現」問題
+            // =====================================================================
+            let isPreviewingInTextarea = false;
+            let committedBefore = '';
+            let committedAfter = '';
+
+            const imeUi = {
+                stripComposingPreview: () => {
+                    if (isPreviewingInTextarea) {
+                        textArea.value = committedBefore + committedAfter;
+                        const pos = committedBefore.length;
+                        textArea.setSelectionRange(pos, pos);
+                        isPreviewingInTextarea = false;
+                    }
+                },
+                clearComposingState: () => {
+                    isPreviewingInTextarea = false;
+                    committedBefore = '';
+                    committedAfter = '';
+                },
+                reset: () => {
+                    imeUi.stripComposingPreview();
+                    functionDiv.classList.remove('active');
+                    composingBufferDiv.innerHTML = '<span class="text-sm opacity-75">請按鍵盤或點下方小鍵盤輸入注音...</span>';
+                    candidatesDiv.innerHTML = '';
+                    candidatesDiv.style.display = 'none';
+                    tooltipDiv.innerHTML = '';
+                    tooltipDiv.style.display = 'none';
+                },
+                commitString: (string) => {
+                    imeUi.stripComposingPreview();
+                    // 若為傳統手動選字模式且開啟了 IVS 支援，自動為送出的字詞補上對應讀音標記
+                    let outStr = string;
+                    if (bpmfFontSupport && bpmfService && outStr && !/(?:\uDB40[\uDD00-\uDDEF]|[\uFE00-\uFE0F])/.test(outStr)) {
+                        try {
+                            outStr = bpmfService.convertTextToBpmfAnnotatedText(outStr) || outStr;
+                        } catch (e) {}
+                    }
+                    const start = textArea.selectionStart || 0;
+                    const end = textArea.selectionEnd || 0;
+                    const val = textArea.value;
+                    textArea.value = val.substring(0, start) + outStr + val.substring(end);
+                    const newPos = start + outStr.length;
+                    textArea.setSelectionRange(newPos, newPos);
+                    committedBefore = textArea.value.substring(0, newPos);
+                    committedAfter = textArea.value.substring(newPos);
+                },
+                backspace: () => {
+                    imeUi.stripComposingPreview();
+                    const start = textArea.selectionStart || 0;
+                    const end = textArea.selectionEnd || 0;
+                    const val = textArea.value;
+                    if (start === end && start > 0) {
+                        // 退格時以完整字元簇 (含 IVS 異體字選擇子) 為單位刪除，避免留下孤立 Surrogate 亂碼
+                        const beforeGraphemes = parseGraphemesWithOffsets(val.substring(0, start));
+                        const lastG = beforeGraphemes.length > 0 ? beforeGraphemes[beforeGraphemes.length - 1] : null;
+                        const cutPos = lastG ? lastG.start : (start - 1);
+                        textArea.value = val.substring(0, cutPos) + val.substring(end);
+                        textArea.setSelectionRange(cutPos, cutPos);
+                    } else if (start !== end) {
+                        textArea.value = val.substring(0, start) + val.substring(end);
+                        textArea.setSelectionRange(start, start);
+                    }
+                },
+                updateByAlphabetMode: () => {
+                    const btn = $('ime-status-btn');
+                    btn.innerText = alphabetMode ? '【英文】' : '【中文】';
+                    btn.className = alphabetMode
+                        ? 'bg-gray-600 hover:bg-gray-700 text-white font-bold px-2.5 py-1 rounded text-sm shadow-sm'
+                        : 'bg-purple-600 hover:bg-purple-700 text-white font-bold px-2.5 py-1 rounded text-sm shadow-sm';
+                },
+                updateByBpmfFontSupport: () => {
+                    const font = $('bpmf-font').value;
+                    if (bpmfFontSupport) {
+                        textArea.style.fontFamily = `"${font}", "ZiHiBpmf", serif`;
+                        textArea.style.fontSize = '28px';
+                        textArea.style.lineHeight = '1.5';
+                    } else {
+                        textArea.style.fontFamily = '"Noto Sans TC", sans-serif';
+                        textArea.style.fontSize = '22px';
+                        textArea.style.lineHeight = '1.4';
+                    }
+                },
+                update: (stateJson) => {
+                    // 第一步：務必先剝除上一個按鍵留下的組字預覽，確保絕不重複累加！
+                    imeUi.stripComposingPreview();
+
+                    const state = JSON.parse(stateJson);
+                    imeUi.updateByAlphabetMode();
+
+                    const buffer = state.composingBuffer || [];
+                    const bufferText = buffer.map(item => item.text).join('');
+
+                    if (buffer.length === 0) {
+                        composingBufferDiv.innerHTML = '<span class="text-sm opacity-75">請按鍵盤或點下方小鍵盤輸入注音...</span>';
+                    } else {
+                        // 從當前乾淨的 textarea 記錄已提交的前後文，再放入本次組字預覽
+                        const start = textArea.selectionStart || 0;
+                        const end = textArea.selectionEnd || 0;
+                        committedBefore = textArea.value.substring(0, start);
+                        committedAfter = textArea.value.substring(end);
+                        textArea.value = committedBefore + bufferText + committedAfter;
+                        const cursorInTextarea = committedBefore.length + (typeof state.cursorIndex === 'number' ? state.cursorIndex : bufferText.length);
+                        textArea.setSelectionRange(cursorInTextarea, cursorInTextarea);
+                        isPreviewingInTextarea = true;
+
+                        // 同時更新組字狀態列 (保護 UTF-16 Surrogate Pair 不被游標切斷)
+                        let renderText = '<p>';
+                        let i = 0;
+                        let cursorNotAtEnd = false;
+                        for (const item of buffer) {
+                            if (item.style === 'highlighted') {
+                                renderText += '<span class="marking">';
+                            }
+                            const text = item.text;
+                            for (let j = 0; j < text.length; j++) {
+                                if (i === state.cursorIndex) {
+                                    renderText += "<span class='cursor'>|</span>";
+                                    cursorNotAtEnd = true;
+                                }
+                                const code = text.charCodeAt(j);
+                                if (code >= 0xD800 && code <= 0xDBFF && j + 1 < text.length) {
+                                    renderText += escapeHtml(text.substring(j, j + 2));
+                                    j++;
+                                    i += 2;
+                                } else {
+                                    renderText += escapeHtml(text[j]);
+                                    i++;
+                                }
+                            }
+                            if (item.style === 'highlighted') {
+                                renderText += '</span>';
+                            }
+                        }
+                        if (!cursorNotAtEnd) {
+                            renderText += "<span class='cursor'>|</span>";
+                        }
+                        renderText += '</p>';
+                        composingBufferDiv.innerHTML = renderText;
+                    }
+
+                    const hasCandidates = state.candidates && state.candidates.length > 0;
+                    if (hasCandidates) {
+                        let s = '';
+                        const selectedCandObj = state.candidates.find(c => c.selected) || state.candidates[0];
+                        const firstKeyCapEsc = selectedCandObj ? escapeHtml(selectedCandObj.keyCap) : '1';
+                        const firstCandVal = selectedCandObj && selectedCandObj.candidate
+                            ? getBaseChar(selectedCandObj.candidate.value)
+                            : '';
+                        const firstCharReadings = firstCandVal ? (charReadingsMap.get(firstCandVal) || []) : [];
+                        const realReadings = firstCharReadings.filter(r => !r.isBlank);
+                        if (realReadings.length > 1) {
+                            s += `<div class="mb-2 p-2 rounded bg-purple-50 dark:bg-indigo-950 border border-purple-300 dark:border-purple-700">`;
+                            s += `<div class="text-xs font-bold text-purple-800 dark:text-purple-200 mb-1">🎵 直接選「${escapeHtml(firstCandVal)}」的破音讀音：</div>`;
+                            s += `<div class="flex flex-wrap gap-1.5">`;
+                            for (const rItem of firstCharReadings) {
+                                const annotEsc = escapeHtml(rItem.annotated);
+                                const readEsc = escapeHtml(rItem.reading);
+                                s += `<button type="button" class="reading-option-btn" onclick="window.mcbopomofoApp.commitCandidateWithReading('${firstKeyCapEsc}', '${annotEsc}', '${readEsc}')">`;
+                                s += `<span class="reading-option-char">${annotEsc}</span>`;
+                                s += `<span class="reading-option-label">${readEsc}</span>`;
+                                s += `</button>`;
+                            }
+                            s += `</div></div>`;
+                        }
+
+                        s += '<table>';
+                        for (const candidate of state.candidates) {
+                            const cls = candidate.selected ? ' class="highlighted_candidate"' : '';
+                            const keyCapEsc = escapeHtml(candidate.keyCap);
+                            const rawText = candidate.candidate.displayedText || candidate.candidate.value || '';
+                            const candReading = candidate.candidate.reading || '';
+                            let annotatedCand = rawText;
+                            if (bpmfFontSupport && bpmfService && rawText.length === 1 && candReading && !candReading.startsWith('_')) {
+                                try {
+                                    annotatedCand = bpmfService.annotateSingleCharacter(rawText, candReading) || rawText;
+                                } catch (e) {}
+                            }
+                            const baseC = getBaseChar(rawText);
+                            const cReadings = (baseC.length === 1 && charReadingsMap.has(baseC))
+                                ? charReadingsMap.get(baseC).filter(r => !r.isBlank)
+                                : [];
+
+                            s += `<tr${cls} onclick="window.mcbopomofoApp.selectCandidateByKey('${keyCapEsc}')">`;
+                            s += `<td class="keyCap">${keyCapEsc}</td>`;
+                            s += `<td class="candidate">`;
+                            s += `<div class="flex items-center justify-between gap-2 flex-wrap">`;
+                            s += `<span>${escapeHtml(annotatedCand)}</span>`;
+                            if (cReadings.length > 1) {
+                                s += `<span class="flex items-center gap-1 text-xs font-sans" onclick="event.stopPropagation();">`;
+                                s += `<span class="text-xs text-purple-700 dark:text-purple-300 font-bold">選讀音:</span>`;
+                                for (const rObj of cReadings) {
+                                    const aEsc = escapeHtml(rObj.annotated);
+                                    const rEsc = escapeHtml(rObj.reading);
+                                    s += `<button type="button" onclick="window.mcbopomofoApp.commitCandidateWithReading('${keyCapEsc}', '${aEsc}', '${rEsc}')" class="px-1.5 py-0.5 rounded bg-purple-100 hover:bg-purple-600 text-purple-900 hover:text-white border border-purple-400 font-bold text-xs transition">${rEsc}</button>`;
+                                }
+                                s += `</span>`;
+                            }
+                            s += `</div>`;
+                            s += `</td>`;
+                            s += '</tr>';
+                        }
+                        s += `<tr class="page_info"><td colspan="2">第 ${state.candidatePageIndex} / ${state.candidatePageCount} 頁 (點選國字或右側「選讀音」按鈕)</td></tr>`;
+                        s += '</table>';
+                        candidatesDiv.innerHTML = s;
+                        candidatesDiv.style.display = 'block';
+                    } else {
+                        candidatesDiv.innerHTML = '';
+                        candidatesDiv.style.display = 'none';
+                    }
+
+                    const hasTooltip = !hasCandidates && !!state.tooltip;
+                    if (hasTooltip) {
+                        tooltipDiv.innerHTML = '💡 ' + escapeHtml(state.tooltip);
+                        tooltipDiv.style.display = 'block';
+                    } else {
+                        tooltipDiv.innerHTML = '';
+                        tooltipDiv.style.display = 'none';
+                    }
+
+                    if (hasCandidates || hasTooltip) {
+                        functionDiv.classList.add('active');
+                    } else {
+                        functionDiv.classList.remove('active');
+                    }
+                }
+            };
+
+            const { InputController } = window.mcbopomofo;
+            const controller = new InputController(imeUi);
+            const safeCall = (method, ...args) => {
+                try {
+                    if (typeof controller[method] === 'function') controller[method](...args);
+                } catch (e) {
+                    console.warn('小麥注音設定失敗:', method, e);
+                }
+            };
+            safeCall('setUserVerticalCandidates', true);
+            safeCall('setLanguageCode', 'zh-TW');
+            safeCall('setTraditionalMode', false);
+            safeCall('setKeyboardLayout', 'Standard');
+            safeCall('setSelectPhrase', 'before_cursor');
+            safeCall('setCandidateKeys', '123456789');
+            safeCall('setBopomofoFontAnnotationSupportEnabled', true);
+            safeCall('setAllowChangingPriorTone', true);
+            if (controller.keyHandler_) {
+                controller.keyHandler_.allowChangingPriorTone = true;
+            }
+
+            function commitCandidateWithReading(keyCap, annotatedStr, readingLabel) {
+                const baseC = getBaseChar(annotatedStr);
+                if (keyCap) {
+                    controller.simpleKeyboardEvent(keyCap, false, false);
+                }
+                if (isPreviewingInTextarea) {
+                    controller.simpleKeyboardEvent('{enter}', false, false);
+                } else {
+                    controller.reset();
+                }
+                const val = textArea.value || '';
+                const cursor = textArea.selectionStart || val.length;
+                const graphemes = parseGraphemesWithOffsets(val);
+                let replaced = false;
+                for (let i = graphemes.length - 1; i >= 0; i--) {
+                    const g = graphemes[i];
+                    if (g.start <= cursor && g.base === baseC) {
+                        textArea.value = val.substring(0, g.start) + annotatedStr + val.substring(g.end);
+                        const newPos = g.start + annotatedStr.length;
+                        textArea.setSelectionRange(newPos, newPos);
+                        replaced = true;
+                        break;
+                    }
+                }
+                if (!replaced) {
+                    imeUi.commitString(annotatedStr);
+                }
+                showToast(`🎵 已選取「${baseC}」讀音【${readingLabel}】`);
+                textArea.focus();
+            }
+
+            // 初始化 SimpleKeyboard 螢幕小鍵盤
+            const api = { isLock: false, isShift: false, isCtrl: false };
+            const defaultLayout = [
+                "` 1 2 3 4 5 6 7 8 9 0 - = {bksp}",
+                "{tab} q w e r t y u i o p [ ] \\",
+                "{lock} a s d f g h j k l ; ' {enter}",
+                "{shift} z x c v b n m , . / {shift}",
+                "{ctrl} {space}"
+            ];
+            const shiftLayout = [
+                "~ ! @ # $ % ^ & * ( ) _ + {bksp}",
+                "{tab} Q W E R T Y U I O P { } |",
+                '{lock} A S D F G H J K L : " {enter}',
+                "{shift} Z X C V B N M < > ? {shift}",
+                "{ctrl} {space}"
+            ];
+
+            let keyboard = null;
+            function ensureVirtualKeyboard() {
+                if (!keyboard && window.SimpleKeyboard && window.SimpleKeyboard.default) {
+                    const Keyboard = window.SimpleKeyboard.default;
+                    keyboard = new Keyboard({
+                        onKeyPress: (button) => handleVirtualKeyPress(button)
+                    });
+                }
+                return keyboard;
+            }
+            ensureVirtualKeyboard();
+
+            function buildKeyboardDisplay() {
+                const names = controller.readableLayoutKeys;
+                const display = {
+                    "{tab}": "⇥",
+                    "{lock}": "Caps",
+                    "{shift}": "⇧ Shift",
+                    "{bksp}": "⌫ 退格",
+                    "{enter}": "↵ 確認/換行",
+                    "{space}": "空白鍵 (一聲/選字)",
+                    "{ctrl}": "⌃ Ctrl"
+                };
+                if (!api.isCtrl && !alphabetMode && names) {
+                    for (const [key, value] of names) {
+                        display[key] = value;
+                    }
+                }
+                return display;
+            }
+
+            function updateVirtualKeyboard() {
+                if (!ensureVirtualKeyboard()) return;
+                const buttonTheme = [];
+                if (api.isLock) buttonTheme.push({ class: "hg-button-active", buttons: "{lock}" });
+                if (api.isShift) buttonTheme.push({ class: "hg-button-active", buttons: "{shift}" });
+                if (api.isCtrl) buttonTheme.push({ class: "hg-button-active", buttons: "{ctrl}" });
+
+                keyboard.setOptions({
+                    display: buildKeyboardDisplay(),
+                    layout: { default: (api.isShift || api.isLock) ? shiftLayout : defaultLayout },
+                    buttonTheme
+                });
+            }
+
+            function handleVirtualKeyPress(button) {
+                if (button === "{lock}") { api.isLock = !api.isLock; updateVirtualKeyboard(); return; }
+                if (button === "{shift}") { api.isShift = !api.isShift; updateVirtualKeyboard(); return; }
+                if (button === "{ctrl}") { api.isCtrl = !api.isCtrl; updateVirtualKeyboard(); return; }
+
+                if (alphabetMode) {
+                    if (button === "{enter}") imeUi.commitString("\n");
+                    else if (button === "{space}") imeUi.commitString(" ");
+                    else if (button === "{bksp}") imeUi.backspace();
+                    else if (!button.startsWith("{")) imeUi.commitString(button);
+                    textArea.focus();
+                    return;
+                }
+
+                const handled = controller.simpleKeyboardEvent(button, api.isShift || api.isLock, api.isCtrl);
+                textArea.focus();
+                if (api.isShift) { api.isShift = false; updateVirtualKeyboard(); }
+                if (api.isCtrl) { api.isCtrl = false; updateVirtualKeyboard(); }
+                if (!handled) {
+                    if (button === "{enter}") imeUi.commitString("\n");
+                    else if (button === "{space}") imeUi.commitString(" ");
+                    else if (button === "{bksp}") imeUi.backspace();
+                }
+            }
+
+            // 防止中文模式下瀏覽器原生 beforeinput 重複插入英數字元
+            textArea.addEventListener('beforeinput', (event) => {
+                if (!alphabetMode && !isComposing && (event.inputType === 'insertText' || event.inputType === 'insertLineBreak')) {
+                    event.preventDefault();
+                }
+            });
+
+            // 綁定實體鍵盤事件
+            let shiftKeyIsPressed = false;
+            let isComposing = false;
+
+            textArea.addEventListener('compositionstart', () => {
+                isComposing = true;
+                $('ime_warning').classList.remove('hidden');
+            });
+
+            textArea.addEventListener('compositionend', () => {
+                isComposing = false;
+                $('ime_warning').classList.add('hidden');
+            });
+
+            textArea.addEventListener('keyup', (event) => {
+                if (isComposing || event.isComposing) return;
+                if (event.key === 'Shift' && shiftKeyIsPressed) {
+                    shiftKeyIsPressed = false;
+                    if (isPreviewingInTextarea) {
+                        controller.simpleKeyboardEvent('{enter}', false, false);
+                    }
+                    alphabetMode = !alphabetMode;
+                    controller.reset();
+                    imeUi.updateByAlphabetMode();
+                    updateVirtualKeyboard();
+                }
+            });
+
+            textArea.addEventListener('keydown', (event) => {
+                if (isComposing || event.isComposing || event.keyCode === 229) {
+                    $('ime_warning').classList.remove('hidden');
+                    return;
+                }
+                $('ime_warning').classList.add('hidden');
+
+                if (event.metaKey || event.altKey) {
+                    if (isPreviewingInTextarea) {
+                        controller.simpleKeyboardEvent('{enter}', false, false);
+                    }
+                    controller.reset();
+                    return;
+                }
+                if (!functionDiv.classList.contains('active')) {
+                    shiftKeyIsPressed = (event.key === 'Shift');
+                } else if (event.key !== 'Shift') {
+                    shiftKeyIsPressed = false;
+                }
+                if (alphabetMode) return;
+
+                const accepted = controller.keyEvent(event);
+                if (accepted) {
+                    event.preventDefault();
+                } else {
+                    if (event.key === 'Enter' && !isPreviewingInTextarea) {
+                        event.preventDefault();
+                        imeUi.commitString('\n');
+                    }
+                }
+            });
+
+            // 綁定設定控制項
+            $('bopomofo_font_annotation_support_enabled').addEventListener('change', (e) => {
+                bpmfFontSupport = e.target.checked;
+                controller.setBopomofoFontAnnotationSupportEnabled(bpmfFontSupport);
+                imeUi.updateByBpmfFontSupport();
+                textArea.focus();
+            });
+
+            $('bpmf-font').addEventListener('change', () => {
+                $('bopomofo_font_annotation_support_enabled').checked = true;
+                bpmfFontSupport = true;
+                controller.setBopomofoFontAnnotationSupportEnabled(true);
+                imeUi.updateByBpmfFontSupport();
+                textArea.focus();
+            });
+
+            $('use_mcbopomofo').addEventListener('change', () => {
+                controller.setTraditionalMode(false);
+                textArea.focus();
+            });
+
+            $('use_plainbopomofo').addEventListener('change', () => {
+                controller.setTraditionalMode(true);
+                textArea.focus();
+            });
+
+            $('ime-layout').addEventListener('change', (e) => {
+                controller.setKeyboardLayout(e.target.value);
+                updateVirtualKeyboard();
+                textArea.focus();
+            });
+
+            $('before_cursor').addEventListener('change', () => {
+                controller.setSelectPhrase('before_cursor');
+                textArea.focus();
+            });
+
+            $('after_cursor').addEventListener('change', () => {
+                controller.setSelectPhrase('after_cursor');
+                textArea.focus();
+            });
+
+            imeUi.updateByAlphabetMode();
+            imeUi.updateByBpmfFontSupport();
+            imeUi.reset();
+            updateVirtualKeyboard();
+
+            if (badge) {
+                badge.innerText = '已就緒 (支援破音字選讀音)';
+                badge.className = 'text-xs bg-emerald-400 text-black px-2 py-0.5 rounded-full font-semibold';
+            }
+
+            window.mcbopomofoApp = {
+                initialized: true,
+                controller,
+                imeUi,
+                bpmfService,
+                charReadingsMap,
+                updateVirtualKeyboard,
+                commitCandidateWithReading,
+                toggleAlphabetMode: () => {
+                    if (isPreviewingInTextarea) {
+                        controller.simpleKeyboardEvent('{enter}', false, false);
+                    }
+                    alphabetMode = !alphabetMode;
+                    controller.reset();
+                    imeUi.updateByAlphabetMode();
+                    updateVirtualKeyboard();
+                    textArea.focus();
+                },
+                selectCandidateByKey: (keyCap) => {
+                    controller.simpleKeyboardEvent(keyCap, false, false);
+                    textArea.focus();
+                },
+                triggerCandidateSelection: () => {
+                    if (isPreviewingInTextarea) {
+                        controller.simpleKeyboardEvent('{space}', false, false);
+                    } else {
+                        showToast('請先輸入注音字詞，再點選「選字」挑同音字或破音字讀音');
+                    }
+                    textArea.focus();
+                },
+                commitComposing: () => {
+                    if (isPreviewingInTextarea) {
+                        controller.simpleKeyboardEvent('{enter}', false, false);
+                    }
+                    textArea.focus();
+                }
+            };
+        }
+
+        // 啟動初始化
+        let appBootstrapped = false;
+        function bootstrapApp() {
+            if (appBootstrapped) return;
+            appBootstrapped = true;
+            loadTheme();
+            updateLiveClock();
+            setInterval(updateLiveClock, 1000);
+            applyLayoutMode(layoutModeSelect ? layoutModeSelect.value : 'vertical');
+            applyFontFamily(fontFamilySelect.value, false);
+            requestAnimationFrame(updateRuler);
+            loadFromLocalStorage();
+            initMcBopomofoWeb();
+        }
+
+        if (document.readyState === 'loading') {
+            window.addEventListener('DOMContentLoaded', bootstrapApp);
+        } else {
+            bootstrapApp();
+        }
     </script>
-
-    <script src="https://cdn.jsdelivr.net/gh/ButTaiwan/bpmfvs@main/js/bpmflib.js" 
-            onload="window.bpmfLoaded=true;" 
-            onerror="window.bpmfLoaded=false;"></script>
 </body>
 </html>
